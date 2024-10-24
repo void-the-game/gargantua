@@ -9,6 +9,4 @@ const dbConnection = () => {
     .catch((err) => console.error('Erro ao conectar ao MongoDB Atlas: ', err))
 }
 
-dbConnection()
-
 export default dbConnection
