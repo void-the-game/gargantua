@@ -1,5 +1,5 @@
 import app from './app.js'
-import dbConnection from './config/connection.js'
+import dbConnection from '../config/connection.js'
 
 const PORT = process.env.PORT || 3000
 
