@@ -1,5 +1,7 @@
 import { userService } from '../services/userService.js'
 import validator from 'validator'
+import { createHash } from '../utils/hash.js'
+import jwt from 'jsonwebtoken'
 
 export const getUser = async (req, res) => {
   const { username } = req.params
@@ -46,10 +48,12 @@ export const createUser = async (req, res) => {
       message: 'Password does not meet the requirements',
     })
 
+  const hashedPassword = await createHash(password)
+
   const user = await userService.create({
     username,
     email,
-    password,
+    password: hashedPassword,
   })
 
   if (!user._id)
@@ -86,10 +90,42 @@ export const verifyUserEmail = async (req, res) => {
     userToken: token,
   })
 
-  if (!emailVerified.success)
-    return res.status(400).json(
-      emailVerified
-    )
+  if (!emailVerified.success) return res.status(400).json(emailVerified)
 
   return res.status(200).json({ success: true, message: 'Email verified' })
+}
+
+export const userLogin = async (req, res) => {
+  const { email, password } = req.body
+
+  if (!email || !password)
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required',
+    })
+
+  const user = await userService.getUserByEmail(email)
+
+  const isPasswordCorrect = await user?.comparePassword(password)
+
+  if (!user || !isPasswordCorrect) {
+    return res.status(400).json({
+      success: false,
+      message: 'Incorrect user or password',
+    })
+  }
+
+  const accessToken = jwt.sign(
+    {
+      id: user._id,
+    },
+    'secret',
+    { expiresIn: '1h' }
+  )
+
+  return res.status(200).json({
+    success: true,
+    message: 'Logged in succesfully',
+    accessToken,
+  })
 }
