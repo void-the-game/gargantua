@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid'
 
 export const userService = {
   getUser: ({ username }) => User.findOne({ username }),
+  getUserByEmail: (email) => User.findOne({ email }),
   create: ({ email, username, password }) =>
     new User({
       email,
