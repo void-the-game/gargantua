@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { compareSync } from 'bcrypt'
 
 const Schema = mongoose.Schema
 
@@ -19,8 +20,12 @@ const userSchema = new Schema({
   },
   verified: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
+
+userSchema.methods.comparePassword = function (password) {
+  return compareSync(password, this.password)
+}
 
 export const User = mongoose.model('User', userSchema)
