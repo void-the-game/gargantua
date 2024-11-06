@@ -127,5 +127,6 @@ export const userLogin = async (req, res) => {
     success: true,
     message: 'Logged in succesfully',
     accessToken,
+    username: user.username,
   })
 }
