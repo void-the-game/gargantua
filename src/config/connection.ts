@@ -17,7 +17,6 @@ const connectionOptions: ConnectOptions = {
 }
 
 // Função para conectar ao MongoDB Atlas usando o mongoose
-console.log('db uri', process.env.DB_URI_CONNECTION)
 export const dbConnection = async () => {
   try {
     await mongoose.connect(DB_URI, connectionOptions)
