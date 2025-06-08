@@ -13,7 +13,7 @@ export class RegisterUserUseCase {
     private emailService: EmailService,
     private tokenService: TokenService,
     private tokenRepository: TokenRepository
-  ) {}
+  ) { }
 
   async execute(email: string, username: string, password: string) {
     const [userByUsername, userByEmail] = await Promise.all([
@@ -39,7 +39,7 @@ export class RegisterUserUseCase {
       createdUser.id,
       'EMAIL_VERIFICATION'
     )
-    const expiration = new Date(Date.now() + 24 * 60 * 60 * 7000) // 7 dias
+    const expiration = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 dias
     await this.tokenRepository.create(
       new Token(createdUser.id, token, expiration, 'EMAIL_VERIFICATION')
     )
