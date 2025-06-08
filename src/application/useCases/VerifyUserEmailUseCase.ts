@@ -2,7 +2,7 @@ import { TokenRepository } from '@/domain/repositories/TokenRepository'
 import { UserRepository } from '@/domain/repositories/UserRepository'
 import { TokenService } from '@/domain/services/TokenService'
 
-type VerfiyEmailUseCaseResponse = {
+type VerifyEmailUseCaseResponse = {
   success: boolean
   message?: string
 }
@@ -19,7 +19,7 @@ export class VerifyEmailUseCase {
     private userRepository: UserRepository
   ) { }
 
-  async execute(token: string): Promise<VerfiyEmailUseCaseResponse> {
+  async execute(token: string): Promise<VerifyEmailUseCaseResponse> {
     const { userId, isValid } = await this.tokenService.verifyToken(token)
     if (!isValid) return { success: false, message: ERRORS_MESSAGES.INVALID_TOKEN }
 
