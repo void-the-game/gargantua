@@ -20,8 +20,10 @@ export class TokenMongoose implements TokenRepository {
       : null
   }
 
-  delete(tokenId: string): Promise<void> {
-    throw new Error('Method not implemented.')
+  async delete(tokenId: string): Promise<boolean> {
+    const deleteToken = await TokenModel.deleteOne({ token: tokenId })
+
+    return deleteToken.deletedCount > 0
   }
   deleteAllForUser(userId: Types.ObjectId, type: string): Promise<void> {
     throw new Error('Method not implemented.')

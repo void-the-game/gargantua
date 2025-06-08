@@ -4,6 +4,6 @@ import { Types } from 'mongoose'
 export interface TokenRepository {
   create(token: Token): Promise<void>
   find(token: string, userId: string): Promise<Token | null>
-  delete(tokenId: string): Promise<void>
+  delete(tokenId: string): Promise<boolean>
   deleteAllForUser(userId: Types.ObjectId, type: string): Promise<void>
 }
