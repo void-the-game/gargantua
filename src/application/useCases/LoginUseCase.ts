@@ -27,6 +27,6 @@ export class UserLoginUseCase {
 
     if (!isPasswordValid) return { success: false, message: ERRORS_MESSAGES.PASSWORD_INCORRECT }
 
-    return { success: true, message: 'Logged in succesfully' }
+    return { success: true, message: 'Logged in successfully' }
   }
 }
