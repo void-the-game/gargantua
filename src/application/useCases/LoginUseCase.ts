@@ -1,20 +1,32 @@
 import { UserRepository } from '@/domain/repositories/UserRepository'
 
-export class LoginUseCase {
-  constructor(private userRepository: UserRepository) {}
+type UserLoginUseCaseResponse = {
+  success: boolean
+  message?: string
+}
 
-  async execute(email: string, password: string) {
+enum ERRORS_MESSAGES {
+  USER_NOT_FOUND = 'User not found',
+  PASSWORD_INCORRECT = 'Incorrect user or password',
+}
+
+export class UserLoginUseCase {
+  constructor(private userRepository: UserRepository) { }
+
+  async execute(email: string, password: string): Promise<UserLoginUseCaseResponse> {
     const user = await this.userRepository.getUserByEmail(email)
 
-    if (!user) throw new Error('User not found')
+    if (!user) return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
 
-    if (!user.id) return
+    if (!user!.id) return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
 
     const isPasswordValid = await this.userRepository.comparePassword(
       user.id,
       password
     )
 
-    return isPasswordValid
+    if (!isPasswordValid) return { success: false, message: ERRORS_MESSAGES.PASSWORD_INCORRECT }
+
+    return { success: true, message: 'Logged in succesfully' }
   }
 }
