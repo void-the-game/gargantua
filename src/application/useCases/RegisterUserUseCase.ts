@@ -32,7 +32,7 @@ export class RegisterUserUseCase {
     const createdUser = await this.userRepository.create(user)
 
     if (!createdUser.id) {
-      throw new Error('An error occured while creating user')
+      throw new Error('An error occurred while creating user')
     }
 
     const token = await this.tokenService.generateToken(
