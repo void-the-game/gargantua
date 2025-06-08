@@ -9,4 +9,5 @@ export interface UserRepository {
   userExistsByUsername(username: string): Promise<unknown>
   update(userId: string, data: Partial<User>): Promise<void>
   comparePassword(userId: string, plainPassword: string): Promise<boolean>
+  verifyEmail(userId: string, token: string): Promise<unknown>
 }
