@@ -10,8 +10,8 @@ import { Request, Response } from 'express'
 import process from 'process'
 import validator from 'validator'
 import dotenv from 'dotenv'
-import { UserLoginUseCase } from '@/application/useCases/LoginUseCase'
 
+import { UserLoginUseCase } from '@/application/useCases/UserLoginUseCase'
 dotenv.config()
 
 export class UserController {
@@ -39,7 +39,7 @@ export class UserController {
       tokenRepository
     )
 
-    this.userLoginUseCase = new UserLoginUseCase(userRepository)
+    this.userLoginUseCase = new UserLoginUseCase(userRepository, passwordHasher)
 
     this.verifyUserEmailUseCase = new VerifyEmailUseCase(
       tokenService,
