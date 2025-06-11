@@ -39,7 +39,11 @@ export class UserController {
       tokenRepository
     )
 
-    this.userLoginUseCase = new UserLoginUseCase(userRepository, passwordHasher)
+    this.userLoginUseCase = new UserLoginUseCase(
+      userRepository,
+      passwordHasher,
+      tokenService
+    )
 
     this.verifyUserEmailUseCase = new VerifyEmailUseCase(
       tokenService,
@@ -134,10 +138,10 @@ export class UserController {
       })
     }
 
-    const { success, message } = await this.userLoginUseCase.execute(email, password)
+    const { accessToken, message, success, username } = await this.userLoginUseCase.execute(email, password)
 
     if (!success) return res.status(400).json({ message })
 
-    return res.status(200).json({ success })
+    return res.status(200).json({ accessToken, message, success, username })
   }
 }

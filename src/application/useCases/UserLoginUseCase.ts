@@ -1,9 +1,12 @@
 import { UserRepository } from '@/domain/repositories/UserRepository'
 import { PasswordHasher } from '@/domain/services/PasswordHasher'
+import { JwtTokenService } from '@/infrastructure/services/JwtTokenService'
 
 type UserLoginUseCaseResponse = {
-  success: boolean
+  accessToken?: string
   message?: string
+  success: boolean
+  username?: string
 }
 
 enum ERRORS_MESSAGES {
@@ -15,6 +18,7 @@ export class UserLoginUseCase {
   constructor(
     private userRepository: UserRepository, 
     private passwordHasher: PasswordHasher,
+    private jwtTokenService: JwtTokenService
 ) { }
 
   async execute(email: string, password: string): Promise<UserLoginUseCaseResponse> {
@@ -31,6 +35,10 @@ export class UserLoginUseCase {
 
     if (!isPasswordValid) return { success: false, message: ERRORS_MESSAGES.PASSWORD_INCORRECT }
 
-    return { success: true, message: 'Logged in successfully' }
+    const username = user.username
+    const userId = user.id
+    const userAccessToken = await this.jwtTokenService.generateToken(userId, 'ACCESS')
+
+    return { success: true, username, message: 'Logged in successfully', accessToken: userAccessToken }
   }
 }
