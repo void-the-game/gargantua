@@ -20,10 +20,7 @@ const connectionOptions: ConnectOptions = {
 export const dbConnection = async () => {
   try {
     await mongoose.connect(DB_URI, connectionOptions)
-
-    mongoose.connection.on('connect', () => {
-      console.log('Connected')
-    })
+    console.log('Database connected successfully!')
   } catch (error) {
     console.log(error)
     throw new Error('Failed to connect to the database')
