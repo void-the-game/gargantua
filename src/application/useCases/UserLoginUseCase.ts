@@ -1,4 +1,5 @@
 import { UserRepository } from '@/domain/repositories/UserRepository'
+import { PasswordHasher } from '@/domain/services/PasswordHasher'
 
 type UserLoginUseCaseResponse = {
   success: boolean
@@ -11,7 +12,10 @@ enum ERRORS_MESSAGES {
 }
 
 export class UserLoginUseCase {
-  constructor(private userRepository: UserRepository) { }
+  constructor(
+    private userRepository: UserRepository, 
+    private passwordHasher: PasswordHasher,
+) { }
 
   async execute(email: string, password: string): Promise<UserLoginUseCaseResponse> {
     const user = await this.userRepository.getUserByEmail(email)
@@ -20,9 +24,9 @@ export class UserLoginUseCase {
 
     if (!user!.id) return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
 
-    const isPasswordValid = await this.userRepository.comparePassword(
-      user.id,
-      password
+    const isPasswordValid = await this.passwordHasher.compare(
+      password,
+      user.password
     )
 
     if (!isPasswordValid) return { success: false, message: ERRORS_MESSAGES.PASSWORD_INCORRECT }
