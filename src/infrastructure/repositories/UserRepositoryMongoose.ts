@@ -1,14 +1,9 @@
 import { User } from '@/domain/entities/User'
 import { UserRepository } from '@/domain/repositories/UserRepository'
 import { UserModel } from '@/infrastructure/models/UserModel'
-import { compareSync } from 'bcrypt'
 import { TokenModel } from '@/infrastructure/models/TokenModel'
 
 export class UserRepositoryMongoose implements UserRepository {
-  async getUser(username: string): Promise<User | null> {
-    return await UserModel.findOne({ username })
-  }
-
   async getUserByEmail(email: string): Promise<User | null> {
     return await UserModel.findOne({ email })
   }
@@ -46,14 +41,5 @@ export class UserRepositoryMongoose implements UserRepository {
     const emailVerified = await UserModel.updateOne({ _id: userId }, { verified: true }).exec()
 
     return emailVerified
-  }
-
-  async comparePassword(
-    userId: string,
-    plainPassword: string
-  ): Promise<boolean> {
-    const user = await UserModel.findById(userId)
-    if (!user) throw new Error('User not found')
-    return compareSync(plainPassword, user.password)
   }
 }
