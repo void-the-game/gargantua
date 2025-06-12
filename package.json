@@ -4,17 +4,20 @@
   "description": "Void backend",
   "main": "src/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && yarn sentry:sourcemaps",
     "start": "ts-node src/index.ts",
     "dev": "nodemon --exec 'ts-node -r tsconfig-paths/register' src/index.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "jest --coverage",
     "test:watch": "jest --watchAll",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org void-n5 --project void-backend ./dist && sentry-cli sourcemaps upload --org void-n5 --project void-backend ./dist"
   },
   "license": "MIT",
   "dependencies": {
+    "@sentry/cli": "^2.46.0",
+    "@sentry/node": "^9.28.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -17,3 +17,6 @@ node_modules/
 dist
 
 coverage
+
+# Sentry Config File
+.sentryclirc
