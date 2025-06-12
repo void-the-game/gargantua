@@ -1,3 +1,4 @@
+import './instrument'
 import app from './app'
 import { dbConnection } from '@/config/connection'
 import { port } from './config/vars'

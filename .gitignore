@@ -15,3 +15,6 @@ node_modules/
 .env.local
 
 dist
+
+# Sentry Config File
+.sentryclirc
