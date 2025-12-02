@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { UserController } from '@/presentation/controllers/UserController'
+import { authMiddleware } from '../middlewares/authMiddleware'
 
 export const userRoutes = (router: Router) => {
   const userController = new UserController()
@@ -20,13 +21,16 @@ export const userRoutes = (router: Router) => {
     }
   })
 
-  router.get('/user/verify/:token', async (req: Request, res: Response, next) => {
-    try {
-      await userController.verifyUserEmail(req, res)
-    } catch (error) {
-      next(error)
+  router.get(
+    '/user/verify/:token',
+    async (req: Request, res: Response, next) => {
+      try {
+        await userController.verifyUserEmail(req, res)
+      } catch (error) {
+        next(error)
+      }
     }
-  })
+  )
 
   router.post('/user/login', async (req: Request, res: Response, next) => {
     try {
@@ -35,4 +39,28 @@ export const userRoutes = (router: Router) => {
       next(error)
     }
   })
+
+  router.patch(
+    '/user/:userId',
+    authMiddleware,
+    async (req: Request, res: Response, next) => {
+      try {
+        await userController.updateUser(req, res)
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+
+  router.delete(
+    '/user/:userId',
+    authMiddleware,
+    async (req: Request, res: Response, next) => {
+      try {
+        await userController.deleteUser(req, res)
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
 }

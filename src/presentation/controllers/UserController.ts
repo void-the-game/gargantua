@@ -12,6 +12,9 @@ import validator from 'validator'
 import dotenv from 'dotenv'
 
 import { UserLoginUseCase } from '@/application/useCases/UserLoginUseCase'
+import { UpdateUserUseCase } from '@/application/useCases/UpdateUserUseCase'
+import { User } from '@/domain/entities/User'
+import { DeleteUserUseCase } from '@/application/useCases/DeleteUserUseCase'
 dotenv.config()
 
 export class UserController {
@@ -19,6 +22,8 @@ export class UserController {
   private registerUserUseCase: RegisterUserUseCase
   private verifyUserEmailUseCase: VerifyEmailUseCase
   private userLoginUseCase: UserLoginUseCase
+  private updateUserUseCase: UpdateUserUseCase
+  private deleteUserUseCase: DeleteUserUseCase
 
   constructor() {
     const jwtSecret = process.env.JWT_SECRET
@@ -48,8 +53,15 @@ export class UserController {
     this.verifyUserEmailUseCase = new VerifyEmailUseCase(
       tokenService,
       tokenRepository,
-      userRepository,
+      userRepository
     )
+
+    this.updateUserUseCase = new UpdateUserUseCase(
+      userRepository,
+      passwordHasher
+    )
+
+    this.deleteUserUseCase = new DeleteUserUseCase(userRepository)
   }
 
   async createUser(req: Request, res: Response) {
@@ -121,7 +133,8 @@ export class UserController {
       })
     }
 
-    const { success, message } = await this.verifyUserEmailUseCase.execute(token)
+    const { success, message } =
+      await this.verifyUserEmailUseCase.execute(token)
 
     if (!success) return res.status(400).json({ message })
 
@@ -138,10 +151,89 @@ export class UserController {
       })
     }
 
-    const { accessToken, message, success, username } = await this.userLoginUseCase.execute(email, password)
+    const { accessToken, message, success, username, id } =
+      await this.userLoginUseCase.execute(email, password)
 
     if (!success) return res.status(400).json({ message })
 
-    return res.status(200).json({ accessToken, message, success, username })
+    return res.status(200).json({ accessToken, message, success, username, id })
+  }
+
+  async updateUser(req: Request, res: Response) {
+    try {
+      const authenticatedUserId = req.user?.id
+
+      const { userId } = req.params
+
+      if (authenticatedUserId !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only update your own profile',
+        })
+      }
+
+      const { email, username, password } = req.body
+
+      if (email && !validator.isEmail(email)) {
+        return res.status(422).json({
+          success: false,
+          message: 'Type a valid email address',
+        })
+      }
+
+      if (password && !validator.isStrongPassword(password)) {
+        return res.status(422).json({
+          success: false,
+          message: 'Password does not meet the requirements',
+        })
+      }
+
+      const updateData: Partial<User> = {}
+      if (email) updateData.email = email
+      if (username) updateData.username = username
+      if (password) updateData.password = password
+
+      const result = await this.updateUserUseCase.execute(userId, updateData)
+
+      return res.status(200).json(result)
+    } catch (error: any) {
+      const statusMap: any = {
+        'User not found': 404,
+        'Username already in use': 422,
+        'Email already in use': 422,
+      }
+
+      const statusCode = statusMap[error.message] || 400
+
+      return res.status(statusCode).json({
+        success: false,
+        message: error.message,
+      })
+    }
+  }
+
+  async deleteUser(req: Request, res: Response) {
+    try {
+      const authenticatedUserId = req.user?.id
+
+      const { userId } = req.params
+
+      if (authenticatedUserId !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only delete your own profile',
+        })
+      }
+
+      const result = await this.deleteUserUseCase.execute(userId)
+
+      return res.status(200).json(result)
+    } catch (error: any) {
+      const statusCode = error.message === 'User not found' ? 404 : 400
+      return res.status(statusCode).json({
+        success: false,
+        message: error.message,
+      })
+    }
   }
 }
