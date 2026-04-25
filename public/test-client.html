@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Void — Socket.IO Test Client</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: #12122a;
+      border: 1px solid #1e1e3a;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      color: #a78bfa;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #1e1e3a;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+
+    .dot.connected { background: #22c55e; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px 12px;
+      background: #1a1a35;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #6366f1;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    button.danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    button.success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+    }
+
+    /* Cards */
+    .hand {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .card {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #fff;
+    }
+
+    .card.selected {
+      border-color: #fbbf24;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+    }
+
+    .card.blue { background: #1e40af; color: #93c5fd; }
+    .card.green { background: #15803d; color: #86efac; }
+    .card.yellow { background: #a16207; color: #fde68a; }
+    .card.purple { background: #6b21a8; color: #d8b4fe; }
+    .card.white { background: #374151; color: #f3f4f6; }
+
+    /* Players */
+    .player-list {
+      list-style: none;
+    }
+
+    .player-list li {
+      padding: 8px 12px;
+      background: #1a1a35;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+
+    .player-list li.current-turn {
+      border-left: 3px solid #22c55e;
+      background: #1a2535;
+    }
+
+    .player-list li.eliminated {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+
+    /* Log */
+    #log {
+      height: 500px;
+      overflow-y: auto;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      padding: 8px;
+      background: #0d0d20;
+      border-radius: 8px;
+    }
+
+    .log-entry { margin-bottom: 2px; }
+    .log-entry.recv { color: #22c55e; }
+    .log-entry.send { color: #6366f1; }
+    .log-entry.error { color: #ef4444; }
+    .log-entry.info { color: #888; }
+
+    .game-info {
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+
+    .game-info span {
+      display: inline-block;
+      background: #1a1a35;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin: 3px 4px 3px 0;
+    }
+
+    .discard-pile {
+      margin-top: 12px;
+      padding: 10px;
+      background: #1a1a35;
+      border-radius: 8px;
+      min-height: 40px;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌀 Void — Test Client</h1>
+  <p class="subtitle">Abra esta página em 2+ abas para simular múltiplos jogadores</p>
+
+  <div class="grid">
+    <!-- Left Panel: Connection & Room -->
+    <div>
+      <div class="panel">
+        <h2>🔌 Conexão</h2>
+        <div class="status">
+          <div class="dot" id="statusDot"></div>
+          <span id="statusText">Desconectado</span>
+        </div>
+        <label>Nome do Jogador</label>
+        <input type="text" id="playerName" placeholder="Seu nome..." value="">
+        <label>Servidor</label>
+        <input type="text" id="serverUrl" value="http://localhost:3000">
+        <button id="btnConnect">Conectar</button>
+        <button id="btnDisconnect" class="danger" style="display:none">Desconectar</button>
+      </div>
+
+      <div class="panel" style="margin-top: 16px">
+        <h2>🏠 Sala</h2>
+        <button id="btnCreateRoom" disabled>Criar Sala</button>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input type="text" id="roomCode" placeholder="Código..." style="text-transform:uppercase">
+          <button id="btnJoinRoom" disabled style="width:auto;padding:10px 20px">Entrar</button>
+        </div>
+        <button id="btnLeaveRoom" class="danger" disabled>Sair da Sala</button>
+
+        <div id="roomInfo" style="display:none;margin-top:12px">
+          <label>Sala Atual</label>
+          <div style="font-size:1.5rem;font-weight:bold;color:#a78bfa" id="currentRoomCode">—</div>
+        </div>
+
+        <h2 style="margin-top: 16px">👥 Jogadores</h2>
+        <ul class="player-list" id="playerList">
+          <li style="color:#666">Nenhum jogador</li>
+        </ul>
+      </div>
+
+      <div class="panel" style="margin-top: 16px">
+        <h2>🎮 Partida</h2>
+        <button id="btnStartMatch" class="success" disabled>Iniciar Partida</button>
+        <button id="btnPassTurn" disabled>Passar Turno</button>
+        <div class="game-info" id="gameInfo" style="display:none">
+          <span>Turno: <b id="turnNumber">-</b></span>
+          <span>Direção: <b id="direction">-</b></span>
+          <span>Deck: <b id="deckCount">-</b></span>
+          <span>Fase: <b id="phase">-</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Panel: Cards & Game -->
+    <div>
+      <div class="panel">
+        <h2>🃏 Sua Mão <span id="handCount" style="color:#666;font-weight:normal">(0 cartas)</span></h2>
+        <p style="font-size:0.8rem;color:#666;margin-bottom:8px">Clique em uma carta para selecioná-la, depois clique "Jogar Carta"</p>
+        <div class="hand" id="handCards"></div>
+        <button id="btnPlayCard" disabled style="margin-top:12px">Jogar Carta Selecionada</button>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>🗑️ Pilha de Descarte</h2>
+        <div class="discard-pile" id="discardPile">Vazia</div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>⚡ Interrupção</h2>
+        <div id="interruptInfo" style="font-size:0.85rem;color:#888">Nenhuma interrupção ativa</div>
+        <div class="hand" id="interruptCards" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Log -->
+    <div>
+      <div class="panel" style="height:100%">
+        <h2>📋 Event Log</h2>
+        <div id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    // ─── State ─────────────────────────────────────────────────
+    let socket = null
+    let currentRoomId = null
+    let currentState = null
+    let selectedCardId = null
+    let mySocketId = null
+
+    // ─── DOM refs ──────────────────────────────────────────────
+    const $ = (id) => document.getElementById(id)
+
+    // ─── Logging ───────────────────────────────────────────────
+    function addLog(text, type = 'info') {
+      const el = document.createElement('div')
+      el.className = `log-entry ${type}`
+      const time = new Date().toLocaleTimeString('pt-BR')
+      el.textContent = `[${time}] ${text}`
+      $('log').appendChild(el)
+      $('log').scrollTop = $('log').scrollHeight
+    }
+
+    // ─── Connection ────────────────────────────────────────────
+    $('btnConnect').onclick = () => {
+      const url = $('serverUrl').value
+      const name = $('playerName').value || `Player-${Math.random().toString(36).slice(2, 6)}`
+      $('playerName').value = name
+
+      addLog(`Conectando a ${url}...`, 'send')
+      socket = io(url)
+
+      socket.on('connect', () => {
+        mySocketId = socket.id
+        addLog(`Conectado! ID: ${socket.id}`, 'recv')
+        $('statusDot').classList.add('connected')
+        $('statusText').textContent = `Conectado (${socket.id.slice(0, 8)}...)`
+        $('btnConnect').style.display = 'none'
+        $('btnDisconnect').style.display = 'block'
+        $('btnCreateRoom').disabled = false
+        $('btnJoinRoom').disabled = false
+      })
+
+      socket.on('disconnect', (reason) => {
+        addLog(`Desconectado: ${reason}`, 'error')
+        $('statusDot').classList.remove('connected')
+        $('statusText').textContent = 'Desconectado'
+        $('btnConnect').style.display = 'block'
+        $('btnDisconnect').style.display = 'none'
+        resetUI()
+      })
+
+      // ─── Room Events ────────────────────────────────────────
+      socket.on('room:created', (data) => {
+        currentRoomId = data.roomId
+        addLog(`Sala criada! Código: ${data.code}`, 'recv')
+        $('currentRoomCode').textContent = data.code
+        $('roomInfo').style.display = 'block'
+        $('btnLeaveRoom').disabled = false
+        $('btnStartMatch').disabled = false
+      })
+
+      socket.on('room:player_joined', (data) => {
+        addLog(`${data.playerName} entrou na sala`, 'recv')
+        updatePlayerList(data.players)
+      })
+
+      socket.on('room:player_left', (data) => {
+        addLog(`Jogador saiu da sala`, 'recv')
+        updatePlayerList(data.players)
+      })
+
+      // ─── State Events ───────────────────────────────────────
+      socket.on('state:update', (state) => {
+        currentState = state
+        currentRoomId = state.roomId
+        addLog(`Estado atualizado (turno ${state.turnNumber})`, 'recv')
+        renderGameState(state)
+      })
+
+      // ─── Game Events ────────────────────────────────────────
+      socket.on('card:played', (data) => {
+        addLog(`${data.playerName} jogou ${data.card.type} (${data.card.color}): ${data.effectDescription}`, 'recv')
+      })
+
+      socket.on('match:end', (data) => {
+        addLog(`🏆 PARTIDA ENCERRADA! Vencedor: ${data.winnerName}`, 'recv')
+        alert(`🏆 ${data.winnerName} venceu a partida!`)
+      })
+
+      socket.on('player:eliminated', (data) => {
+        addLog(`💀 ${data.playerName} foi eliminado!`, 'error')
+      })
+
+      socket.on('player:returned', (data) => {
+        addLog(`🔄 ${data.playerName} retornou ao jogo com ${data.cardsDrawn} cartas!`, 'recv')
+      })
+
+      // ─── Interrupt Events ───────────────────────────────────
+      socket.on('interrupt:available', (data) => {
+        addLog(`⚡ INTERRUPÇÃO! ${data.attackerName} usou ${data.cardType}. Tempo: ${data.timeoutMs / 1000}s`, 'error')
+        showInterruptUI(data)
+      })
+
+      socket.on('error', (data) => {
+        addLog(`ERRO: [${data.code}] ${data.message}`, 'error')
+      })
+    }
+
+    $('btnDisconnect').onclick = () => {
+      socket?.disconnect()
+    }
+
+    // ─── Room Actions ──────────────────────────────────────────
+    $('btnCreateRoom').onclick = () => {
+      const name = $('playerName').value
+      addLog(`Criando sala como "${name}"...`, 'send')
+      socket.emit('room:create', { playerName: name })
+    }
+
+    $('btnJoinRoom').onclick = () => {
+      const code = $('roomCode').value.toUpperCase()
+      const name = $('playerName').value
+      addLog(`Entrando na sala ${code}...`, 'send')
+      socket.emit('room:join', { code, playerName: name }, (response) => {
+        if (response?.roomId) {
+          currentRoomId = response.roomId
+          $('currentRoomCode').textContent = code
+          $('roomInfo').style.display = 'block'
+          $('btnLeaveRoom').disabled = false
+          $('btnStartMatch').disabled = false
+          if (response.players) updatePlayerList(response.players)
+        }
+      })
+    }
+
+    $('btnLeaveRoom').onclick = () => {
+      addLog('Saindo da sala...', 'send')
+      socket.emit('room:leave')
+      currentRoomId = null
+      currentState = null
+      $('roomInfo').style.display = 'none'
+      $('btnLeaveRoom').disabled = true
+      $('btnStartMatch').disabled = true
+      $('playerList').innerHTML = '<li style="color:#666">Nenhum jogador</li>'
+      $('handCards').innerHTML = ''
+      $('gameInfo').style.display = 'none'
+    }
+
+    // ─── Match Actions ─────────────────────────────────────────
+    $('btnStartMatch').onclick = () => {
+      if (!currentRoomId) return addLog('Sem sala ativa', 'error')
+      addLog('Iniciando partida...', 'send')
+      socket.emit('match:start', { roomId: currentRoomId })
+    }
+
+    $('btnPassTurn').onclick = () => {
+      if (!currentRoomId) return
+      addLog('Passando turno...', 'send')
+      socket.emit('turn:pass', { roomId: currentRoomId })
+    }
+
+    $('btnPlayCard').onclick = () => {
+      if (!selectedCardId || !currentRoomId) return
+      addLog(`Jogando carta ${selectedCardId}...`, 'send')
+      socket.emit('card:play', { roomId: currentRoomId, cardId: selectedCardId })
+      selectedCardId = null
+    }
+
+    // ─── Rendering ─────────────────────────────────────────────
+    function updatePlayerList(players) {
+      const list = $('playerList')
+      list.innerHTML = ''
+      for (const p of players) {
+        const li = document.createElement('li')
+        const isMe = p.id === mySocketId
+        li.textContent = `${p.name}${isMe ? ' (você)' : ''}`
+
+        if (currentState) {
+          const fullP = currentState.players.find(pl => pl.id === p.id)
+          if (fullP?.isEliminated) li.classList.add('eliminated')
+          if (currentState.players[currentState.currentTurnIndex]?.id === p.id) {
+            li.classList.add('current-turn')
+          }
+          const handInfo = document.createElement('span')
+          if (fullP) {
+            handInfo.textContent = Array.isArray(fullP.hand)
+              ? `${fullP.hand.length} cartas`
+              : `${fullP.hand?.count ?? '?'} cartas`
+          }
+          handInfo.style.color = '#888'
+          li.appendChild(handInfo)
+        }
+
+        list.appendChild(li)
+      }
+    }
+
+    function renderGameState(state) {
+      // Game info
+      $('gameInfo').style.display = 'block'
+      $('turnNumber').textContent = state.turnNumber
+      $('direction').textContent = state.direction === 'clockwise' ? '🔄 Horário' : '🔃 Anti-horário'
+      $('deckCount').textContent = state.deck?.remaining ?? '?'
+      $('phase').textContent = state.phase
+
+      // Player list
+      const players = state.players.map(p => ({ id: p.id, name: p.name }))
+      updatePlayerList(players)
+
+      // My hand
+      const me = state.players.find(p => Array.isArray(p.hand))
+      if (me) {
+        renderHand(me.hand)
+        $('handCount').textContent = `(${me.hand.length} cartas)`
+
+        // Enable/disable actions based on turn
+        const isMyTurn = state.players[state.currentTurnIndex]?.id === mySocketId
+        $('btnPassTurn').disabled = !isMyTurn || !state.hasPlayedCardThisTurn
+        $('btnPlayCard').disabled = !isMyTurn
+      }
+
+      // Discard pile
+      if (state.discardPile.length > 0) {
+        const last5 = state.discardPile.slice(-5)
+        $('discardPile').innerHTML = last5.map(c =>
+          `<span class="card ${c.color}" style="display:inline-block;margin:2px;cursor:default">${c.type}</span>`
+        ).join('')
+      } else {
+        $('discardPile').textContent = 'Vazia'
+      }
+    }
+
+    function renderHand(cards) {
+      const container = $('handCards')
+      container.innerHTML = ''
+      for (const card of cards) {
+        const el = document.createElement('div')
+        el.className = `card ${card.color}${card.id === selectedCardId ? ' selected' : ''}`
+        el.textContent = formatCardType(card.type)
+        el.title = `${card.type} (${card.color}) — valor: ${card.value}`
+        el.onclick = () => {
+          selectedCardId = selectedCardId === card.id ? null : card.id
+          renderHand(cards)
+        }
+        container.appendChild(el)
+      }
+    }
+
+    function showInterruptUI(data) {
+      $('interruptInfo').innerHTML =
+        `<b style="color:#ef4444">⚡ ${data.attackerName}</b> usou <b>${data.cardType}</b>!<br>` +
+        `Você tem <b>${data.timeoutMs / 1000}s</b> para reagir.`
+      $('interruptCards').style.display = 'flex'
+      $('interruptCards').innerHTML = ''
+
+      if (data.availableResponses.length === 0) {
+        $('interruptCards').innerHTML = '<span style="color:#666">Sem cartas reativas na mão</span>'
+        return
+      }
+
+      // Find actual reactive cards in hand
+      const me = currentState?.players.find(p => Array.isArray(p.hand))
+      if (!me) return
+
+      const reactiveCards = me.hand.filter(c =>
+        data.availableResponses.includes(c.type)
+      )
+
+      for (const card of reactiveCards) {
+        const el = document.createElement('div')
+        el.className = `card ${card.color}`
+        el.textContent = `⚡ ${formatCardType(card.type)}`
+        el.onclick = () => {
+          addLog(`Jogando interrupção: ${card.type}`, 'send')
+          socket.emit('interrupt:play', { roomId: currentRoomId, cardId: card.id })
+          $('interruptCards').style.display = 'none'
+          $('interruptInfo').textContent = 'Nenhuma interrupção ativa'
+        }
+        $('interruptCards').appendChild(el)
+      }
+    }
+
+    function formatCardType(type) {
+      const names = {
+        essence: 'Essência', joker: 'Coringa', black_hole: 'Buraco Negro',
+        vortex: 'Vórtice', buy_plus_1: 'Compre +1', buy_plus_2: 'Compre +2',
+        steal_next_1: 'Roube →', steal_prev_1: 'Roube ←', steal_any_1: 'Roube ✦',
+        trap: 'Armadilha', recycle: 'Reciclar', block_purchase: 'Bloqueia Compra',
+        swap_next_hand: 'Trocar →', swap_prev_hand: 'Trocar ←', swap_any_hand: 'Trocar ✦',
+        extra_power: 'Poder Extra', block_steal: 'Bloqueia Roubo',
+        reflect: 'Refletir', nullify: 'Anular',
+      }
+      return names[type] || type
+    }
+
+    function resetUI() {
+      $('btnCreateRoom').disabled = true
+      $('btnJoinRoom').disabled = true
+      $('btnLeaveRoom').disabled = true
+      $('btnStartMatch').disabled = true
+      $('btnPassTurn').disabled = true
+      $('btnPlayCard').disabled = true
+      $('roomInfo').style.display = 'none'
+      $('gameInfo').style.display = 'none'
+      $('handCards').innerHTML = ''
+      $('playerList').innerHTML = '<li style="color:#666">Nenhum jogador</li>'
+      currentRoomId = null
+      currentState = null
+    }
+
+    // Auto-generate player name
+    $('playerName').value = `Player-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+  </script>
+</body>
+</html>
