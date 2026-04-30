@@ -5,7 +5,7 @@ import {
   CardPlayPayload,
   TurnPassPayload,
 } from '@/shared/types/socket-events'
-import { GamePhase } from '@/shared/types/game-types'
+import { GamePhase, GameState } from '@/shared/types/game-types'
 import {
   noActiveMatch,
   notYourTurn,
