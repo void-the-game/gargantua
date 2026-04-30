@@ -1,5 +1,5 @@
 import { Card, CardType, CardColor, STEAL_CARDS } from '@/shared/types/card-types'
-import { GameState, Player } from '@/shared/types/game-types'
+import { GameState, Player, TurnDirection } from '@/shared/types/game-types'
 import {
   getCurrentPlayer,
   getNextPlayer,
@@ -342,7 +342,7 @@ function applyExtraPowerByColor(
     case CardColor.Yellow: {
       // Yellow: reverse direction (bonus: reverse + skip next)
       state.direction =
-        state.direction === 'clockwise' ? 'counter_clockwise' : 'clockwise'
+        state.direction === TurnDirection.Clockwise ? TurnDirection.CounterClockwise : TurnDirection.Clockwise
       return hasBonus
         ? 'Extra Power (Yellow): reversed direction and skip next player'
         : 'Extra Power (Yellow): reversed direction'
