@@ -7,15 +7,14 @@ import { Player, TurnDirection } from '@/shared/types/game-types'
  * Each entry: [CardType, CardColor, quantity]
  */
 const DECK_DISTRIBUTION: [CardType, CardColor, number][] = [
-  // Essências — 5 por cor × 5 cores = 25
-  [CardType.Essence, CardColor.Blue, 5],
-  [CardType.Essence, CardColor.Green, 5],
-  [CardType.Essence, CardColor.Yellow, 5],
-  [CardType.Essence, CardColor.Purple, 5],
-  [CardType.Essence, CardColor.White, 5],
+  // Essências — 4 por cor × 4 cores = 16
+  [CardType.Essence, CardColor.Blue, 4],
+  [CardType.Essence, CardColor.Green, 4],
+  [CardType.Essence, CardColor.Yellow, 4],
+  [CardType.Essence, CardColor.Purple, 4],
 
-  // Coringa — 2 (sem cor específica, usamos White como neutro)
-  [CardType.Joker, CardColor.White, 2],
+  // Coringa — 4 (sem cor específica, usamos White como neutro)
+  [CardType.Joker, CardColor.White, 4],
 
   // Buraco Negro — 4 (1 por cor, exceto White)
   [CardType.BlackHole, CardColor.Blue, 1],

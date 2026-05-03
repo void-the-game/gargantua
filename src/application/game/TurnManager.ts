@@ -14,7 +14,7 @@ export function advanceTurn(state: GameState): void {
     nextIndex = ((nextIndex + step) % playerCount + playerCount) % playerCount
     attempts++
     if (attempts > playerCount) break // safety: avoid infinite loop
-  } while (state.players[nextIndex].isEliminated)
+  } while (state.players[nextIndex].isEliminated && !state.players[nextIndex].canReturn)
 
   state.currentTurnIndex = nextIndex
   state.turnNumber++
@@ -38,7 +38,7 @@ export function getNextPlayer(state: GameState): Player {
 
   do {
     nextIndex = ((nextIndex + step) % playerCount + playerCount) % playerCount
-  } while (state.players[nextIndex].isEliminated && nextIndex !== state.currentTurnIndex)
+  } while (state.players[nextIndex].isEliminated && !state.players[nextIndex].canReturn && nextIndex !== state.currentTurnIndex)
 
   return state.players[nextIndex]
 }
@@ -53,7 +53,7 @@ export function getPreviousPlayer(state: GameState): Player {
 
   do {
     prevIndex = ((prevIndex + step) % playerCount + playerCount) % playerCount
-  } while (state.players[prevIndex].isEliminated && prevIndex !== state.currentTurnIndex)
+  } while (state.players[prevIndex].isEliminated && !state.players[prevIndex].canReturn && prevIndex !== state.currentTurnIndex)
 
   return state.players[prevIndex]
 }
@@ -95,7 +95,14 @@ export function checkElimination(state: GameState): string[] {
   for (const player of state.players) {
     if (!player.isEliminated && player.hand.length === 0) {
       player.isEliminated = true
-      player.canReturn = true
+      
+      if (!player.hasUsedExtraLife) {
+        player.canReturn = true
+        player.hasUsedExtraLife = true
+      } else {
+        player.canReturn = false
+      }
+      
       eliminated.push(player.id)
     }
   }
@@ -116,7 +123,7 @@ export function tryPlayerReturn(
     return false
   }
 
-  const cardsToDraw = Math.min(3, state.deck.length)
+  const cardsToDraw = Math.min(2, state.deck.length)
   player.hand = state.deck.splice(0, cardsToDraw)
   player.isEliminated = false
   player.canReturn = false
