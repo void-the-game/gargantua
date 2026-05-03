@@ -7,6 +7,8 @@ export enum CardType {
   BuyPlus2 = 'buy_plus_2',
   StealNextOne = 'steal_next_1',
   StealPrevOne = 'steal_prev_1',
+  StealNextTwo = 'steal_next_2',
+  StealPrevTwo = 'steal_prev_2',
   StealAnyOne = 'steal_any_1',
   Trap = 'trap',
   Recycle = 'recycle',
@@ -32,7 +34,6 @@ export interface Card {
   id: string
   type: CardType
   color: CardColor
-  value: number
 }
 
 /** Cards that can be played out of turn as interrupts */
@@ -46,6 +47,8 @@ export const REACTIVE_CARDS: CardType[] = [
 export const STEAL_CARDS: CardType[] = [
   CardType.StealNextOne,
   CardType.StealPrevOne,
+  CardType.StealNextTwo,
+  CardType.StealPrevTwo,
   CardType.StealAnyOne,
 ]
 
