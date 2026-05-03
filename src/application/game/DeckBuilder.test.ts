@@ -6,9 +6,8 @@ describe('DeckBuilder', () => {
   describe('buildDeck', () => {
     it('should create a deck with the correct number of cards', () => {
       const deck = buildDeck()
-      // Sum of all quantities in DECK_DISTRIBUTION
-      expect(deck.length).toBeGreaterThanOrEqual(80)
-      expect(deck.length).toBeLessThanOrEqual(90)
+      // Sum of all quantities in DECK_DISTRIBUTION is 73
+      expect(deck.length).toBe(73)
     })
 
     it('should have unique IDs for every card', () => {
@@ -42,21 +41,22 @@ describe('DeckBuilder', () => {
       expect(types.has(CardType.Nullify)).toBe(true)
     })
 
-    it('should have 25 Essence cards (5 per color)', () => {
+    it('should have 16 Essence cards (4 per color, excluding White)', () => {
       const deck = buildDeck()
       const essences = deck.filter((c) => c.type === CardType.Essence)
-      expect(essences).toHaveLength(25)
+      expect(essences).toHaveLength(16)
 
-      for (const color of Object.values(CardColor)) {
+      const baseColors = [CardColor.Blue, CardColor.Green, CardColor.Yellow, CardColor.Purple]
+      for (const color of baseColors) {
         const ofColor = essences.filter((c) => c.color === color)
-        expect(ofColor).toHaveLength(5)
+        expect(ofColor).toHaveLength(4)
       }
     })
 
-    it('should have 2 Joker cards', () => {
+    it('should have 4 Joker cards', () => {
       const deck = buildDeck()
       const jokers = deck.filter((c) => c.type === CardType.Joker)
-      expect(jokers).toHaveLength(2)
+      expect(jokers).toHaveLength(4)
     })
 
     it('should assign values to all cards', () => {
@@ -91,7 +91,7 @@ describe('DeckBuilder', () => {
         if (deck[i].id !== shuffled[i].id) differentPositions++
       }
 
-      // With 80+ cards, chance of identical order is astronomically low
+      // With 73 cards, chance of identical order is astronomically low
       expect(differentPositions).toBeGreaterThan(deck.length * 0.5)
     })
 
@@ -165,8 +165,8 @@ describe('DeckBuilder', () => {
         expect(player.hand).toHaveLength(7)
       }
 
-      // 80+ cards - 28 dealt = 50+ remaining
-      expect(deck.length).toBeGreaterThan(50)
+      // 73 cards - 28 dealt = 45 remaining
+      expect(deck.length).toBe(45)
     })
   })
 
