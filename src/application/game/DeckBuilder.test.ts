@@ -6,8 +6,8 @@ describe('DeckBuilder', () => {
   describe('buildDeck', () => {
     it('should create a deck with the correct number of cards', () => {
       const deck = buildDeck()
-      // Sum of all quantities in DECK_DISTRIBUTION is 73
-      expect(deck.length).toBe(73)
+      // Sum of all quantities in DECK_DISTRIBUTION is 86
+      expect(deck.length).toBe(86)
     })
 
     it('should have unique IDs for every card', () => {
@@ -28,6 +28,8 @@ describe('DeckBuilder', () => {
       expect(types.has(CardType.BuyPlus2)).toBe(true)
       expect(types.has(CardType.StealNextOne)).toBe(true)
       expect(types.has(CardType.StealPrevOne)).toBe(true)
+      expect(types.has(CardType.StealNextTwo)).toBe(true)
+      expect(types.has(CardType.StealPrevTwo)).toBe(true)
       expect(types.has(CardType.StealAnyOne)).toBe(true)
       expect(types.has(CardType.Trap)).toBe(true)
       expect(types.has(CardType.Recycle)).toBe(true)
@@ -58,13 +60,6 @@ describe('DeckBuilder', () => {
       const jokers = deck.filter((c) => c.type === CardType.Joker)
       expect(jokers).toHaveLength(4)
     })
-
-    it('should assign values to all cards', () => {
-      const deck = buildDeck()
-      for (const card of deck) {
-        expect(card.value).toBeGreaterThanOrEqual(0)
-      }
-    })
   })
 
   describe('shuffleDeck', () => {
@@ -91,7 +86,7 @@ describe('DeckBuilder', () => {
         if (deck[i].id !== shuffled[i].id) differentPositions++
       }
 
-      // With 73 cards, chance of identical order is astronomically low
+      // With 86 cards, chance of identical order is astronomically low
       expect(differentPositions).toBeGreaterThan(deck.length * 0.5)
     })
 
@@ -165,8 +160,8 @@ describe('DeckBuilder', () => {
         expect(player.hand).toHaveLength(7)
       }
 
-      // 73 cards - 28 dealt = 45 remaining
-      expect(deck.length).toBe(45)
+      // 86 cards - 28 dealt = 58 remaining
+      expect(deck.length).toBe(58)
     })
   })
 

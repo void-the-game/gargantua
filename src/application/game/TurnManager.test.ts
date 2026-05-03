@@ -15,7 +15,7 @@ import { GameState, GamePhase, TurnDirection, Player } from '@/shared/types/game
 import { Card, CardType, CardColor } from '@/shared/types/card-types'
 
 function createCard(id: string, type = CardType.Essence, color = CardColor.Blue): Card {
-  return { id, type, color, value: 1 }
+  return { id, type, color }
 }
 
 function createPlayer(id: string, name: string, hand: Card[] = []): Player {
