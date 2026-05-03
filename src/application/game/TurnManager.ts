@@ -95,14 +95,14 @@ export function checkElimination(state: GameState): string[] {
   for (const player of state.players) {
     if (!player.isEliminated && player.hand.length === 0) {
       player.isEliminated = true
-      
+
       if (!player.hasUsedExtraLife) {
         player.canReturn = true
         player.hasUsedExtraLife = true
       } else {
         player.canReturn = false
       }
-      
+
       eliminated.push(player.id)
     }
   }

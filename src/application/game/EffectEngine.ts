@@ -308,8 +308,8 @@ function handleExtraPower(
   // Check if playing with a matching essence card or Joker
   if (essenceCardId) {
     const essenceIndex = player.hand.findIndex(
-      (c) => c.id === essenceCardId && 
-             (c.type === CardType.Joker || (c.type === CardType.Essence && c.color === card.color))
+      (c) => c.id === essenceCardId &&
+        (c.type === CardType.Joker || (c.type === CardType.Essence && c.color === card.color))
     )
     if (essenceIndex !== -1) {
       const [essence] = player.hand.splice(essenceIndex, 1)

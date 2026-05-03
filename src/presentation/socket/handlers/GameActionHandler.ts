@@ -98,7 +98,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           }
           state.phase = GamePhase.React
           emitInterruptAvailable(io, roomId, state)
-          
+
           state.pendingInterrupt.timeoutHandle = setTimeout(() => {
             resolveInterruptTimeout(io, roomId, state)
           }, INTERRUPT_TIMEOUT_MS)
@@ -131,7 +131,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           if (result.requiresDiscard && state.pendingDiscard) {
             state.phase = GamePhase.Resolve
             const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass 
-            
+
             for (const targetId of pd.remainingTargetIds) {
               const targetSocket = state.players.find(p => p.id === targetId)?.socketId
               if (targetSocket) {
@@ -267,7 +267,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         if (!state.pendingDiscard) throw new Error('Nenhum descarte pendente.')
 
         const pd = state.pendingDiscard
-        
+
         const playerIndex = state.players.findIndex(p => p.socketId === socket.id || p.id === socket.id)
         if (playerIndex === -1) throw new Error('Jogador não encontrado.')
         const player = state.players[playerIndex]
@@ -285,7 +285,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         }
 
         const sourcePlayer = state.players.find(p => p.id === pd.sourcePlayerId)
-        
+
         const hasRequiredColor = player.hand.some(c => c.color === pd.requiredColor || c.type === CardType.Joker)
         if (hasRequiredColor && cardsToDiscard.length !== 1) {
           throw invalidDiscard(`Você possui a cor exigida (ou Coringa), portanto DEVE descartá-la (selecione apenas 1 carta).`)
@@ -293,9 +293,9 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
 
         if (pd.reason === 'vortex') {
           // Expected 1 card of required color or Joker
-          const validCard = cardsToDiscard.length === 1 && 
+          const validCard = cardsToDiscard.length === 1 &&
             (cardsToDiscard[0].color === pd.requiredColor || cardsToDiscard[0].type === CardType.Joker)
-          
+
           if (validCard) {
             // Discard it
             player.hand = player.hand.filter(c => c.id !== cardsToDiscard[0].id)
@@ -310,7 +310,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           }
         } else if (pd.reason === 'black_hole') {
           // Expected 1 card of required color or Joker
-          const validCard = cardsToDiscard.length === 1 && 
+          const validCard = cardsToDiscard.length === 1 &&
             (cardsToDiscard[0].color === pd.requiredColor || cardsToDiscard[0].type === CardType.Joker)
 
           if (validCard) {
@@ -335,7 +335,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         if (pd.remainingTargetIds.length === 0) {
           state.pendingDiscard = null
           state.phase = GamePhase.Play
-          
+
           const eliminatedIds = checkElimination(state)
           for (const id of eliminatedIds) {
             const p = state.players.find((pl) => pl.id === id)
@@ -385,10 +385,10 @@ function resolveInterruptTimeout(
 
   const attacker = state.players.find(p => p.id === attackerId)
   const card = state.discardPile.find(c => c.id === cardId)
-  
+
   if (attacker && card) {
     const result = applyCardEffect(card, state, context)
-    
+
     io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
       playerId: attacker.id,
       playerName: attacker.name,
@@ -403,7 +403,7 @@ function resolveInterruptTimeout(
     if (result.requiresDiscard && state.pendingDiscard) {
       state.phase = GamePhase.Resolve
       const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass 
-      
+
       for (const targetId of pd.remainingTargetIds) {
         const targetSocket = state.players.find(p => p.id === targetId)?.socketId
         if (targetSocket) {
