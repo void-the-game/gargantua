@@ -27,15 +27,28 @@ export interface Player {
   hand: Card[]
   isEliminated: boolean
   canReturn: boolean
+  hasUsedExtraLife?: boolean
 }
 
 export interface PendingInterrupt {
   type: 'steal' | 'card_played'
   attackerId: string
-  targetId: string
+  targetId?: string
   cardId: string
+  context?: {
+    targetPlayerId?: string
+    recycleCardIds?: string[]
+    essenceCardId?: string
+  }
   timeoutMs: number
   timeoutHandle?: ReturnType<typeof setTimeout>
+}
+
+export interface PendingDiscard {
+  reason: 'vortex' | 'black_hole'
+  sourcePlayerId: string
+  requiredColor: string
+  remainingTargetIds: string[]
 }
 
 export interface GameState {
@@ -48,6 +61,7 @@ export interface GameState {
   turnNumber: number
   phase: GamePhase
   pendingInterrupt: PendingInterrupt | null
+  pendingDiscard: PendingDiscard | null
   blockPurchaseFlag: boolean
   hasPlayedCardThisTurn: boolean
 }
@@ -76,6 +90,7 @@ export interface PlayerView {
   turnNumber: number
   phase: GamePhase
   pendingInterrupt: Omit<PendingInterrupt, 'timeoutHandle'> | null
+  pendingDiscard: PendingDiscard | null
   blockPurchaseFlag: boolean
   hasPlayedCardThisTurn: boolean
 }

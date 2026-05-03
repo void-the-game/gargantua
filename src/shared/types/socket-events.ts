@@ -29,6 +29,10 @@ export const SocketEvents = {
   INTERRUPT_PLAY: 'interrupt:play',
   INTERRUPT_TIMEOUT: 'interrupt:timeout',
 
+  // Discards (Vortex / Black Hole)
+  DISCARD_REQUIRED: 'discard:required',
+  DISCARD_SUBMIT: 'discard:submit',
+
   // Player
   PLAYER_ELIMINATED: 'player:eliminated',
   PLAYER_RETURNED: 'player:returned',
@@ -124,6 +128,23 @@ export interface InterruptAvailablePayload {
 export interface InterruptPlayPayload {
   roomId: string
   cardId: string
+}
+
+/** Client → Server: timeout for interrupt */
+export interface InterruptTimeoutPayload {
+  roomId: string
+}
+
+/** Server → Client: Notify player they must discard cards */
+export interface DiscardRequiredPayload {
+  reason: 'vortex' | 'black_hole'
+  requiredColor: string
+}
+
+/** Client → Server: Player submits their chosen discards */
+export interface DiscardSubmitPayload {
+  roomId: string
+  cardIds: string[]
 }
 
 /** Server → Room: a player was eliminated */
