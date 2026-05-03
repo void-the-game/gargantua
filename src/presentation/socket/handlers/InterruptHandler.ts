@@ -83,7 +83,8 @@ export function registerInterruptHandlers(io: Server, socket: Socket): void {
               state.discardPile.pop()
               throw new Error('Você só pode refletir ataques de roubo direcionados a você.')
             }
-            executeReflect(state, attackerId, target.id, 1)
+            const stealCount = (pendingCard?.type === CardType.StealNextTwo || pendingCard?.type === CardType.StealPrevTwo) ? 2 : 1
+            executeReflect(state, attackerId, target.id, stealCount)
             console.log(`[interrupt] ${target.name} reflected steal back to ${attackerId}`)
             io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
               playerId: target.id,

@@ -50,13 +50,19 @@ export function applyCardEffect(
       return handleBuyPlus(state, 2)
 
     case CardType.StealNextOne:
-      return handleStealNext(state)
+      return handleStealNext(state, 1)
 
     case CardType.StealPrevOne:
-      return handleStealPrev(state)
+      return handleStealPrev(state, 1)
+
+    case CardType.StealNextTwo:
+      return handleStealNext(state, 2)
+
+    case CardType.StealPrevTwo:
+      return handleStealPrev(state, 2)
 
     case CardType.StealAnyOne:
-      return handleStealAny(state, context?.targetPlayerId)
+      return handleStealAny(state, 1, context?.targetPlayerId)
 
     case CardType.Trap:
       return handleTrap()
@@ -167,22 +173,22 @@ function handleBuyPlus(state: GameState, amount: number): EffectResult {
   }
 }
 
-function handleStealNext(state: GameState): EffectResult {
+function handleStealNext(state: GameState, count: number): EffectResult {
   const target = getNextPlayer(state)
 
   return {
-    description: `Steal 1 card from ${target.name}`,
+    description: `Steal ${count} card(s) from ${target.name}`,
     requiresInterrupt: true,
     interruptTargetId: target.id,
     interruptType: 'steal',
   }
 }
 
-function handleStealPrev(state: GameState): EffectResult {
+function handleStealPrev(state: GameState, count: number): EffectResult {
   const target = getPreviousPlayer(state)
 
   return {
-    description: `Steal 1 card from ${target.name}`,
+    description: `Steal ${count} card(s) from ${target.name}`,
     requiresInterrupt: true,
     interruptTargetId: target.id,
     interruptType: 'steal',
@@ -191,6 +197,7 @@ function handleStealPrev(state: GameState): EffectResult {
 
 function handleStealAny(
   state: GameState,
+  count: number,
   targetPlayerId?: string
 ): EffectResult {
   const target = targetPlayerId
@@ -202,7 +209,7 @@ function handleStealAny(
   }
 
   return {
-    description: `Steal 1 card from ${target.name}`,
+    description: `Steal ${count} card(s) from ${target.name}`,
     requiresInterrupt: true,
     interruptTargetId: target.id,
     interruptType: 'steal',
@@ -411,23 +418,29 @@ export function executeSteal(
 
   if (!attacker || !target || target.hand.length === 0) return
 
-  // Check for Trap in target's hand
-  const trapIndex = target.hand.findIndex((c) => c.type === CardType.Trap)
-  if (trapIndex !== -1) {
-    // Trap activates: the trap card + 1 more card are discarded from the attacker
-    const [trap] = target.hand.splice(trapIndex, 1)
-    state.discardPile.push(trap)
-
-    if (attacker.hand.length > 0) {
-      const [discarded] = attacker.hand.splice(0, 1)
-      state.discardPile.push(discarded)
-    }
-    return
-  }
-
   const stealCount = Math.min(count, target.hand.length)
-  const stolen = target.hand.splice(0, stealCount)
-  attacker.hand.push(...stolen)
+  
+  for (let i = 0; i < stealCount; i++) {
+    if (target.hand.length === 0) break
+
+    // Steal a random card
+    const cardIndex = Math.floor(Math.random() * target.hand.length)
+    const [stolenCard] = target.hand.splice(cardIndex, 1)
+
+    if (stolenCard.type === CardType.Trap) {
+      // Trap activates: the trap card + 1 more card are discarded from the attacker
+      state.discardPile.push(stolenCard)
+      
+      // Attacker loses a card
+      if (attacker.hand.length > 0) {
+        const attackerDiscardIndex = Math.floor(Math.random() * attacker.hand.length)
+        const [discarded] = attacker.hand.splice(attackerDiscardIndex, 1)
+        state.discardPile.push(discarded)
+      }
+    } else {
+      attacker.hand.push(stolenCard)
+    }
+  }
 }
 
 /**

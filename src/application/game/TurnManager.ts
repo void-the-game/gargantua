@@ -19,6 +19,14 @@ export function advanceTurn(state: GameState): void {
   state.currentTurnIndex = nextIndex
   state.turnNumber++
   state.hasPlayedCardThisTurn = false
+
+  // Compra automática no início do turno
+  if (state.blockPurchaseFlag) {
+    // Bloqueia a compra e limpa a flag para o próximo turno
+    state.blockPurchaseFlag = false
+  } else {
+    drawCards(state, state.players[nextIndex], 1)
+  }
 }
 
 /**

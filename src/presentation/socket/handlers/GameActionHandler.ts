@@ -78,14 +78,15 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         const requiresDelay = [
           CardType.BlackHole, CardType.Vortex,
           CardType.StealNextOne, CardType.StealPrevOne, CardType.StealAnyOne,
+          CardType.StealNextTwo, CardType.StealPrevTwo,
           CardType.Recycle, CardType.BlockPurchase,
           CardType.SwapNextHand, CardType.SwapPrevHand, CardType.SwapAnyHand
         ].includes(card.type)
 
         if (requiresDelay) {
           let interruptTargetId = undefined
-          if (card.type === CardType.StealNextOne) interruptTargetId = getNextPlayer(state).id
-          else if (card.type === CardType.StealPrevOne) interruptTargetId = getPreviousPlayer(state).id
+          if (card.type === CardType.StealNextOne || card.type === CardType.StealNextTwo) interruptTargetId = getNextPlayer(state).id
+          else if (card.type === CardType.StealPrevOne || card.type === CardType.StealPrevTwo) interruptTargetId = getPreviousPlayer(state).id
           else if (card.type === CardType.StealAnyOne) interruptTargetId = targetPlayerId
 
           state.pendingInterrupt = {
@@ -397,7 +398,8 @@ function resolveInterruptTimeout(
     })
 
     if (result.interruptType === 'steal' && result.interruptTargetId) {
-      executeSteal(state, attackerId, result.interruptTargetId, 1)
+      const stealCount = (card.type === CardType.StealNextTwo || card.type === CardType.StealPrevTwo) ? 2 : 1
+      executeSteal(state, attackerId, result.interruptTargetId, stealCount)
     }
 
     if (result.requiresDiscard && state.pendingDiscard) {
