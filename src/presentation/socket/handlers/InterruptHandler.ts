@@ -42,7 +42,7 @@ export function registerInterruptHandlers(io: Server, socket: Socket): void {
           (p) => p.socketId === socket.id || p.id === socket.id
         )
 
-        if (!target || target.id !== targetId) {
+        if (!target) {
           throw noInterruptAvailable()
         }
 
@@ -55,60 +55,53 @@ export function registerInterruptHandlers(io: Server, socket: Socket): void {
         const [card] = target.hand.splice(cardIndex, 1)
         state.discardPile.push(card)
 
-        // Clear the timeout
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle)
-        }
-
         // Resolve based on card type
+        const isTarget = targetId === target.id
+        const pendingCard = state.discardPile.find(c => c.id === state.pendingInterrupt?.cardId)
+        const isSteal = pendingCard?.type.includes('steal')
+
         switch (card.type) {
           case CardType.BlockSteal: {
-            // Cancel the steal — nothing happens
-            console.log(
-              `[interrupt] ${target.name} blocked steal from ${attackerId}`
-            )
+            if (!isTarget || !isSteal) {
+              target.hand.push(card)
+              state.discardPile.pop()
+              throw new Error('Você só pode bloquear ataques de roubo direcionados a você.')
+            }
+            console.log(`[interrupt] ${target.name} blocked steal from ${attackerId}`)
             io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
               playerId: target.id,
               playerName: target.name,
               card: { type: card.type, color: card.color },
-              effectDescription: `${target.name} blocked the steal!`,
+              effectDescription: `${target.name} bloqueou o efeito!`,
             })
             break
           }
 
           case CardType.Reflect: {
-            // Reverse the steal
-            executeReflect(state, attackerId, targetId, 1)
-            console.log(
-              `[interrupt] ${target.name} reflected steal back to ${attackerId}`
-            )
+            if (!isTarget || !isSteal) {
+              target.hand.push(card)
+              state.discardPile.pop()
+              throw new Error('Você só pode refletir ataques de roubo direcionados a você.')
+            }
+            executeReflect(state, attackerId, target.id, 1)
+            console.log(`[interrupt] ${target.name} reflected steal back to ${attackerId}`)
             io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
               playerId: target.id,
               playerName: target.name,
               card: { type: card.type, color: card.color },
-              effectDescription: `${target.name} reflected the steal!`,
+              effectDescription: `${target.name} refletiu o efeito!`,
             })
             break
           }
 
           case CardType.Nullify: {
-            // Check if the original card was ExtraPower (immune to Nullify)
-            const lastPlayed = state.discardPile[state.discardPile.length - 2]
-            if (lastPlayed?.type === CardType.ExtraPower) {
-              // Put the nullify card back and throw error
-              target.hand.push(card)
-              state.discardPile.pop()
-              throw cannotNullifyExtraPower()
-            }
-
-            console.log(
-              `[interrupt] ${target.name} nullified card from ${attackerId}`
-            )
+            // Nullify works on any delayed effect
+            console.log(`[interrupt] ${target.name} nullified card from ${attackerId}`)
             io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
               playerId: target.id,
               playerName: target.name,
               card: { type: card.type, color: card.color },
-              effectDescription: `${target.name} nullified the card!`,
+              effectDescription: `${target.name} anulou a carta!`,
             })
             break
           }
@@ -117,8 +110,13 @@ export function registerInterruptHandlers(io: Server, socket: Socket): void {
             // Not a valid interrupt card — put it back
             target.hand.push(card)
             state.discardPile.pop()
-            throw cardNotInHand()
+            throw new Error('Carta inválida para interrupção.')
           }
+        }
+
+        // Card played successfully, clear the timeout
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle)
         }
 
         // Clear interrupt state

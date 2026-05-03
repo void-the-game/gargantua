@@ -70,6 +70,7 @@ export function registerMatchHandlers(io: Server, socket: Socket): void {
           pendingInterrupt: null,
           blockPurchaseFlag: false,
           hasPlayedCardThisTurn: false,
+          pendingDiscard: null
         }
 
         // Update room
