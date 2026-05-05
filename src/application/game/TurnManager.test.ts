@@ -15,7 +15,7 @@ import { GameState, GamePhase, TurnDirection, Player } from '@/shared/types/game
 import { Card, CardType, CardColor } from '@/shared/types/card-types'
 
 function createCard(id: string, type = CardType.Essence, color = CardColor.Blue): Card {
-  return { id, type, color, value: 1 }
+  return { id, type, color }
 }
 
 function createPlayer(id: string, name: string, hand: Card[] = []): Player {
@@ -43,6 +43,7 @@ function createGameState(players: Player[], opts: Partial<GameState> = {}): Game
     turnNumber: 1,
     phase: GamePhase.Play,
     pendingInterrupt: null,
+    pendingDiscard: null,
     blockPurchaseFlag: false,
     hasPlayedCardThisTurn: false,
     ...opts,
@@ -194,8 +195,8 @@ describe('TurnManager', () => {
       expect(returned).toBe(true)
       expect(p.isEliminated).toBe(false)
       expect(p.canReturn).toBe(false)
-      expect(p.hand).toHaveLength(3)
-      expect(state.deck).toHaveLength(2) // 5 - 3
+      expect(p.hand).toHaveLength(2) // I updated tryPlayerReturn to draw 2 cards
+      expect(state.deck).toHaveLength(3) // 5 - 2
     })
 
     it('should not return player if canReturn is false', () => {

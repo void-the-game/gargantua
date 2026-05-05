@@ -7,82 +7,68 @@ import { Player, TurnDirection } from '@/shared/types/game-types'
  * Each entry: [CardType, CardColor, quantity]
  */
 const DECK_DISTRIBUTION: [CardType, CardColor, number][] = [
-  // Essências — 5 por cor × 5 cores = 25
-  [CardType.Essence, CardColor.Blue, 5],
-  [CardType.Essence, CardColor.Green, 5],
-  [CardType.Essence, CardColor.Yellow, 5],
-  [CardType.Essence, CardColor.Purple, 5],
-  [CardType.Essence, CardColor.White, 5],
+  // Essências — 16 (4 por cor)
+  [CardType.Essence, CardColor.Blue, 4],
+  [CardType.Essence, CardColor.Green, 4],
+  [CardType.Essence, CardColor.Yellow, 4],
+  [CardType.Essence, CardColor.Purple, 4],
 
-  // Coringa — 2 (sem cor específica, usamos White como neutro)
-  [CardType.Joker, CardColor.White, 2],
+  // Coringa — 4 (Sem cor/Branca)
+  [CardType.Joker, CardColor.White, 4],
 
-  // Buraco Negro — 4 (1 por cor, exceto White)
-  [CardType.BlackHole, CardColor.Blue, 1],
-  [CardType.BlackHole, CardColor.Green, 1],
-  [CardType.BlackHole, CardColor.Yellow, 1],
-  [CardType.BlackHole, CardColor.Purple, 1],
+  // Compre +1 — 8 (2 por cor)
+  [CardType.BuyPlus1, CardColor.Blue, 2],
+  [CardType.BuyPlus1, CardColor.Green, 2],
+  [CardType.BuyPlus1, CardColor.Yellow, 2],
+  [CardType.BuyPlus1, CardColor.Purple, 2],
 
-  // Vórtice — 4
-  [CardType.Vortex, CardColor.Blue, 1],
-  [CardType.Vortex, CardColor.Green, 1],
-  [CardType.Vortex, CardColor.Yellow, 1],
-  [CardType.Vortex, CardColor.Purple, 1],
-
-  // Compre +1 — 4
-  [CardType.BuyPlus1, CardColor.Blue, 1],
-  [CardType.BuyPlus1, CardColor.Green, 1],
-  [CardType.BuyPlus1, CardColor.Yellow, 1],
-  [CardType.BuyPlus1, CardColor.Purple, 1],
-
-  // Compre +2 — 4
+  // Compre +2 — 4 (1 por cor)
   [CardType.BuyPlus2, CardColor.Blue, 1],
   [CardType.BuyPlus2, CardColor.Green, 1],
   [CardType.BuyPlus2, CardColor.Yellow, 1],
   [CardType.BuyPlus2, CardColor.Purple, 1],
 
-  // Roube 1 do próximo — 4
-  [CardType.StealNextOne, CardColor.Blue, 1],
-  [CardType.StealNextOne, CardColor.Green, 1],
-  [CardType.StealNextOne, CardColor.Yellow, 1],
-  [CardType.StealNextOne, CardColor.Purple, 1],
-
-  // Roube 1 do anterior — 4
+  // Roube 1 anterior — 4 (1 por cor)
   [CardType.StealPrevOne, CardColor.Blue, 1],
   [CardType.StealPrevOne, CardColor.Green, 1],
   [CardType.StealPrevOne, CardColor.Yellow, 1],
   [CardType.StealPrevOne, CardColor.Purple, 1],
 
-  // Roube 1 de qualquer — 2
-  [CardType.StealAnyOne, CardColor.Blue, 1],
-  [CardType.StealAnyOne, CardColor.Purple, 1],
+  // Roube 1 próximo — 4 (1 por cor)
+  [CardType.StealNextOne, CardColor.Blue, 1],
+  [CardType.StealNextOne, CardColor.Green, 1],
+  [CardType.StealNextOne, CardColor.Yellow, 1],
+  [CardType.StealNextOne, CardColor.Purple, 1],
 
-  // Armadilha — 4
-  [CardType.Trap, CardColor.Blue, 1],
-  [CardType.Trap, CardColor.Green, 1],
-  [CardType.Trap, CardColor.Yellow, 1],
-  [CardType.Trap, CardColor.Purple, 1],
+  // Roube 2 anterior — 4 (1 por cor)
+  [CardType.StealPrevTwo, CardColor.Blue, 1],
+  [CardType.StealPrevTwo, CardColor.Green, 1],
+  [CardType.StealPrevTwo, CardColor.Yellow, 1],
+  [CardType.StealPrevTwo, CardColor.Purple, 1],
 
-  // Reciclar — 4
+  // Roube 2 próximo — 4 (1 por cor)
+  [CardType.StealNextTwo, CardColor.Blue, 1],
+  [CardType.StealNextTwo, CardColor.Green, 1],
+  [CardType.StealNextTwo, CardColor.Yellow, 1],
+  [CardType.StealNextTwo, CardColor.Purple, 1],
+
+  // Buraco Negro — 4 (1 por cor)
+  [CardType.BlackHole, CardColor.Blue, 1],
+  [CardType.BlackHole, CardColor.Green, 1],
+  [CardType.BlackHole, CardColor.Yellow, 1],
+  [CardType.BlackHole, CardColor.Purple, 1],
+
+  // Vórtice — 4 (1 por cor)
+  [CardType.Vortex, CardColor.Blue, 1],
+  [CardType.Vortex, CardColor.Green, 1],
+  [CardType.Vortex, CardColor.Yellow, 1],
+  [CardType.Vortex, CardColor.Purple, 1],
+
+  // Reciclar — 4 (1 por cor)
   [CardType.Recycle, CardColor.Blue, 1],
   [CardType.Recycle, CardColor.Green, 1],
   [CardType.Recycle, CardColor.Yellow, 1],
   [CardType.Recycle, CardColor.Purple, 1],
-
-  // Bloqueia Compras — 2
-  [CardType.BlockPurchase, CardColor.Blue, 1],
-  [CardType.BlockPurchase, CardColor.Green, 1],
-
-  // Trocar mão (próximo) — 2
-  [CardType.SwapNextHand, CardColor.Yellow, 1],
-  [CardType.SwapNextHand, CardColor.Purple, 1],
-
-  // Trocar mão (anterior) — 2
-  [CardType.SwapPrevHand, CardColor.Blue, 1],
-  [CardType.SwapPrevHand, CardColor.Green, 1],
-
-  // Trocar mão (qualquer) — 1
-  [CardType.SwapAnyHand, CardColor.White, 1],
 
   // Poder Extra — 4 (1 por cor)
   [CardType.ExtraPower, CardColor.Blue, 1],
@@ -90,19 +76,32 @@ const DECK_DISTRIBUTION: [CardType, CardColor, number][] = [
   [CardType.ExtraPower, CardColor.Yellow, 1],
   [CardType.ExtraPower, CardColor.Purple, 1],
 
-  // Bloqueia Roubo — 4
-  [CardType.BlockSteal, CardColor.Blue, 1],
-  [CardType.BlockSteal, CardColor.Green, 1],
-  [CardType.BlockSteal, CardColor.Yellow, 1],
-  [CardType.BlockSteal, CardColor.Purple, 1],
+  // Armadilhas — 6 (Sem cor/Branca)
+  [CardType.Trap, CardColor.White, 6],
 
-  // Refletir — 2
-  [CardType.Reflect, CardColor.Blue, 1],
-  [CardType.Reflect, CardColor.Purple, 1],
+  // Bloqueia Compras — 2 (Sem cor/Branca)
+  [CardType.BlockPurchase, CardColor.White, 2],
 
-  // Anular — 2
-  [CardType.Nullify, CardColor.Green, 1],
-  [CardType.Nullify, CardColor.Yellow, 1],
+  // Bloqueia Roubo — 2 (Sem cor/Branca)
+  [CardType.BlockSteal, CardColor.White, 2],
+
+  // Refletir — 4 (Sem cor/Branca)
+  [CardType.Reflect, CardColor.White, 4],
+
+  // Roube Qualquer — 2 (Sem cor/Branca)
+  [CardType.StealAnyOne, CardColor.White, 2],
+
+  // Anular — 2 (Sem cor/Branca)
+  [CardType.Nullify, CardColor.White, 2],
+
+  // Trocar Mão Qualquer — 2 (Sem cor/Branca)
+  [CardType.SwapAnyHand, CardColor.White, 2],
+
+  // Trocar Mão Anterior — 1 (Sem cor/Branca)
+  [CardType.SwapPrevHand, CardColor.White, 1],
+
+  // Trocar Mão Próximo — 1 (Sem cor/Branca)
+  [CardType.SwapNextHand, CardColor.White, 1],
 ]
 
 /**
@@ -118,7 +117,6 @@ export function buildDeck(): Card[] {
         id: `card-${cardIndex++}`,
         type,
         color,
-        value: getCardValue(type),
       })
     }
   }
@@ -134,7 +132,7 @@ export function shuffleDeck(deck: Card[]): Card[] {
   for (let i = shuffled.length - 1; i > 0; i--) {
     const randomBytes = crypto.randomBytes(4)
     const j = randomBytes.readUInt32BE(0) % (i + 1)
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   return shuffled
 }
@@ -170,43 +168,4 @@ export function pickStartingPlayer(
   return { startIndex, direction }
 }
 
-/**
- * Get the base value (point worth) of a card type.
- */
-function getCardValue(type: CardType): number {
-  switch (type) {
-    case CardType.Essence:
-      return 1
-    case CardType.Joker:
-      return 0
-    case CardType.BlackHole:
-    case CardType.Vortex:
-      return 3
-    case CardType.BuyPlus1:
-      return 1
-    case CardType.BuyPlus2:
-      return 2
-    case CardType.StealNextOne:
-    case CardType.StealPrevOne:
-    case CardType.StealAnyOne:
-      return 2
-    case CardType.Trap:
-      return 2
-    case CardType.Recycle:
-      return 1
-    case CardType.BlockPurchase:
-      return 2
-    case CardType.SwapNextHand:
-    case CardType.SwapPrevHand:
-    case CardType.SwapAnyHand:
-      return 3
-    case CardType.ExtraPower:
-      return 4
-    case CardType.BlockSteal:
-    case CardType.Reflect:
-    case CardType.Nullify:
-      return 2
-    default:
-      return 0
-  }
-}
+

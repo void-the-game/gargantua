@@ -54,13 +54,14 @@ export function createPlayerView(
     phase: state.phase,
     pendingInterrupt: state.pendingInterrupt
       ? {
-          type: state.pendingInterrupt.type,
-          attackerId: state.pendingInterrupt.attackerId,
-          targetId: state.pendingInterrupt.targetId,
-          cardId: state.pendingInterrupt.cardId,
-          timeoutMs: state.pendingInterrupt.timeoutMs,
-        }
+        type: state.pendingInterrupt.type,
+        attackerId: state.pendingInterrupt.attackerId,
+        targetId: state.pendingInterrupt.targetId,
+        cardId: state.pendingInterrupt.cardId,
+        timeoutMs: state.pendingInterrupt.timeoutMs,
+      }
       : null,
+    pendingDiscard: state.pendingDiscard,
     blockPurchaseFlag: state.blockPurchaseFlag,
     hasPlayedCardThisTurn: state.hasPlayedCardThisTurn,
   }
@@ -95,28 +96,33 @@ export function emitInterruptAvailable(
 ): void {
   if (!state.pendingInterrupt) return
 
-  const { attackerId, targetId, timeoutMs, type } = state.pendingInterrupt
+  const { attackerId, targetId, timeoutMs, type, cardId } = state.pendingInterrupt
   const attacker = state.players.find((p) => p.id === attackerId)
-  const target = state.players.find((p) => p.id === targetId)
 
-  if (!attacker || !target) return
+  if (!attacker) return
 
-  // Find which reactive cards the target has
-  const reactiveTypes = [CardType.BlockSteal, CardType.Reflect, CardType.Nullify]
-  const availableResponses = target.hand
-    .filter((c) => reactiveTypes.includes(c.type))
-    .map((c) => c.type)
-
-  const payload: InterruptAvailablePayload = {
-    interruptType: type,
+  const payload = {
     attackerId,
     attackerName: attacker.name,
     cardType: state.discardPile[state.discardPile.length - 1]?.type ?? CardType.Essence,
     timeoutMs,
-    availableResponses,
+    type,
+    cardId,
   }
 
-  io.to(target.socketId).emit(SocketEvents.INTERRUPT_AVAILABLE, payload)
+  if (targetId) {
+    const target = state.players.find((p) => p.id === targetId)
+    if (target?.socketId) {
+      io.to(target.socketId).emit(SocketEvents.INTERRUPT_AVAILABLE, payload)
+    }
+  } else {
+    // Notify all opponents
+    for (const player of state.players) {
+      if (player.id !== attackerId && !player.isEliminated && player.socketId) {
+        io.to(player.socketId).emit(SocketEvents.INTERRUPT_AVAILABLE, payload)
+      }
+    }
+  }
 }
 
 /**

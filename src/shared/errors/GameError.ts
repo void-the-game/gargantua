@@ -57,6 +57,9 @@ export const matchAlreadyStarted = () =>
   })
 
 // Game action errors
+export const invalidDiscard = (msg: string) =>
+  createGameError(msg, { code: 'INVALID_DISCARD' })
+
 export const notYourTurn = () =>
   createGameError('It is not your turn', { code: 'NOT_YOUR_TURN' })
 
@@ -68,6 +71,11 @@ export const cardNotInHand = () =>
 export const mustPlayCardFirst = () =>
   createGameError('You must play a card before passing', {
     code: 'MUST_PLAY_CARD_FIRST',
+  })
+
+export const alreadyPlayedCard = () =>
+  createGameError('You already played a card this turn', {
+    code: 'ALREADY_PLAYED_CARD',
   })
 
 export const noActiveMatch = () =>

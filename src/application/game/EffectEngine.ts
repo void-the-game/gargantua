@@ -1,5 +1,5 @@
 import { Card, CardType, CardColor, STEAL_CARDS } from '@/shared/types/card-types'
-import { GameState, Player } from '@/shared/types/game-types'
+import { GameState, Player, TurnDirection } from '@/shared/types/game-types'
 import {
   getCurrentPlayer,
   getNextPlayer,
@@ -14,6 +14,7 @@ export interface EffectResult {
   requiresInterrupt: boolean
   interruptTargetId?: string
   interruptType?: 'steal' | 'card_played'
+  requiresDiscard?: boolean
 }
 
 /**
@@ -49,13 +50,19 @@ export function applyCardEffect(
       return handleBuyPlus(state, 2)
 
     case CardType.StealNextOne:
-      return handleStealNext(state)
+      return handleStealNext(state, 1)
 
     case CardType.StealPrevOne:
-      return handleStealPrev(state)
+      return handleStealPrev(state, 1)
+
+    case CardType.StealNextTwo:
+      return handleStealNext(state, 2)
+
+    case CardType.StealPrevTwo:
+      return handleStealPrev(state, 2)
 
     case CardType.StealAnyOne:
-      return handleStealAny(state, context?.targetPlayerId)
+      return handleStealAny(state, 1, context?.targetPlayerId)
 
     case CardType.Trap:
       return handleTrap()
@@ -100,82 +107,88 @@ function handleJoker(): EffectResult {
 }
 
 function handleBlackHole(card: Card, state: GameState): EffectResult {
-  const opponents = getActiveOpponents(state)
+  const opponents = getActiveOpponents(state).filter(o => o.hand.length > 0)
+  const currentPlayer = getCurrentPlayer(state)
 
-  for (const opponent of opponents) {
-    const colorCards = opponent.hand.filter((c) => c.color === card.color)
-
-    if (colorCards.length > 0) {
-      // Discard 1 card of the same color
-      const toDiscard = colorCards[0]
-      opponent.hand = opponent.hand.filter((c) => c.id !== toDiscard.id)
-      state.discardPile.push(toDiscard)
-    } else {
-      // No cards of that color — discard 2 random cards
-      const toDiscard = opponent.hand.splice(0, Math.min(2, opponent.hand.length))
-      state.discardPile.push(...toDiscard)
+  if (opponents.length > 0) {
+    state.pendingDiscard = {
+      reason: 'black_hole',
+      sourcePlayerId: currentPlayer.id,
+      requiredColor: card.color,
+      remainingTargetIds: opponents.map(o => o.id),
+    }
+    return {
+      description: `Black Hole (${card.color}): opponents must choose cards to discard`,
+      requiresInterrupt: false,
+      requiresDiscard: true,
     }
   }
 
   return {
-    description: `Black Hole (${card.color}): opponents discard cards`,
+    description: `Black Hole (${card.color}): no opponents have cards`,
     requiresInterrupt: false,
   }
 }
 
 function handleVortex(card: Card, state: GameState): EffectResult {
+  const opponents = getActiveOpponents(state).filter(o => o.hand.length > 0)
   const currentPlayer = getCurrentPlayer(state)
-  const opponents = getActiveOpponents(state)
 
-  for (const opponent of opponents) {
-    const colorCards = opponent.hand.filter((c) => c.color === card.color)
-
-    if (colorCards.length > 0) {
-      // Opponent discards 1 of the color
-      const toDiscard = colorCards[0]
-      opponent.hand = opponent.hand.filter((c) => c.id !== toDiscard.id)
-      state.discardPile.push(toDiscard)
-    } else {
-      // No cards of that color — current player steals 1 from opponent
-      if (opponent.hand.length > 0) {
-        const stolen = opponent.hand.splice(0, 1)[0]
-        currentPlayer.hand.push(stolen)
-      }
+  if (opponents.length > 0) {
+    state.pendingDiscard = {
+      reason: 'vortex',
+      sourcePlayerId: currentPlayer.id,
+      requiredColor: card.color,
+      remainingTargetIds: opponents.map(o => o.id),
+    }
+    return {
+      description: `Vortex (${card.color}): opponents must choose cards to discard or be stolen from`,
+      requiresInterrupt: false,
+      requiresDiscard: true,
     }
   }
 
   return {
-    description: `Vortex (${card.color}): opponents lose cards`,
+    description: `Vortex (${card.color}): no opponents have cards`,
     requiresInterrupt: false,
   }
 }
 
 function handleBuyPlus(state: GameState, amount: number): EffectResult {
-  const player = getCurrentPlayer(state)
-  const drawn = drawCards(state, player, amount)
+  const target = getNextPlayer(state)
+
+  if (state.blockPurchaseFlag) {
+    state.blockPurchaseFlag = false
+    return {
+      description: `Compra de +${amount} foi bloqueada pelo efeito anterior!`,
+      requiresInterrupt: false,
+    }
+  }
+
+  const drawn = drawCards(state, target, amount)
 
   return {
-    description: `Drew ${drawn} card(s) from the deck`,
+    description: `${target.name} comprou ${drawn} carta(s) extra(s)!`,
     requiresInterrupt: false,
   }
 }
 
-function handleStealNext(state: GameState): EffectResult {
+function handleStealNext(state: GameState, count: number): EffectResult {
   const target = getNextPlayer(state)
 
   return {
-    description: `Steal 1 card from ${target.name}`,
+    description: `Steal ${count} card(s) from ${target.name}`,
     requiresInterrupt: true,
     interruptTargetId: target.id,
     interruptType: 'steal',
   }
 }
 
-function handleStealPrev(state: GameState): EffectResult {
+function handleStealPrev(state: GameState, count: number): EffectResult {
   const target = getPreviousPlayer(state)
 
   return {
-    description: `Steal 1 card from ${target.name}`,
+    description: `Steal ${count} card(s) from ${target.name}`,
     requiresInterrupt: true,
     interruptTargetId: target.id,
     interruptType: 'steal',
@@ -184,6 +197,7 @@ function handleStealPrev(state: GameState): EffectResult {
 
 function handleStealAny(
   state: GameState,
+  count: number,
   targetPlayerId?: string
 ): EffectResult {
   const target = targetPlayerId
@@ -195,7 +209,7 @@ function handleStealAny(
   }
 
   return {
-    description: `Steal 1 card from ${target.name}`,
+    description: `Steal ${count} card(s) from ${target.name}`,
     requiresInterrupt: true,
     interruptTargetId: target.id,
     interruptType: 'steal',
@@ -216,7 +230,8 @@ function handleRecycle(
 ): EffectResult {
   const player = getCurrentPlayer(state)
   const toRecycle = recycleCardIds ?? []
-  const maxRecycle = Math.min(2, toRecycle.length)
+  // Max 1 extra card can be recycled (total 2 including the Recycle card itself)
+  const maxRecycle = Math.min(1, toRecycle.length)
 
   let recycled = 0
   for (let i = 0; i < maxRecycle; i++) {
@@ -228,11 +243,11 @@ function handleRecycle(
     }
   }
 
-  // Draw the same number of cards
-  const drawn = drawCards(state, player, recycled)
+  // Draw 1 for the Recycle card itself + 1 for each extra discarded card
+  const drawn = drawCards(state, player, recycled + 1)
 
   return {
-    description: `Recycled ${recycled} card(s), drew ${drawn}`,
+    description: `Recycled ${recycled + 1} card(s), drew ${drawn}`,
     requiresInterrupt: false,
   }
 }
@@ -297,10 +312,11 @@ function handleExtraPower(
   const player = getCurrentPlayer(state)
   let hasEssenceBonus = false
 
-  // Check if playing with a matching essence card
+  // Check if playing with a matching essence card or Joker
   if (essenceCardId) {
     const essenceIndex = player.hand.findIndex(
-      (c) => c.id === essenceCardId && c.type === CardType.Essence && c.color === card.color
+      (c) => c.id === essenceCardId &&
+        (c.type === CardType.Joker || (c.type === CardType.Essence && c.color === card.color))
     )
     if (essenceIndex !== -1) {
       const [essence] = player.hand.splice(essenceIndex, 1)
@@ -333,28 +349,55 @@ function applyExtraPowerByColor(
       return `Extra Power (Blue): drew ${count} cards`
     }
     case CardColor.Green: {
-      // Green: view 1 opponent's hand (bonus: view all)
-      // Note: this is a visibility effect — handled in broadcast
-      return hasBonus
-        ? 'Extra Power (Green): revealed all opponents\' hands'
-        : 'Extra Power (Green): revealed 1 opponent\'s hand'
+      // The Extra Power card (and Essence) were just pushed to the discard pile.
+      // We must temporarily remove them so they aren't recovered.
+      const playedCardsCount = hasBonus ? 2 : 1
+      const temporarilyRemoved = state.discardPile.splice(state.discardPile.length - playedCardsCount, playedCardsCount)
+
+      // Green: draw the last card from discard pile (bonus: last 3)
+      const count = hasBonus ? 3 : 1
+      let drawn = 0
+      for (let i = 0; i < count; i++) {
+        if (state.discardPile.length > 0) {
+          player.hand.push(state.discardPile.pop()!)
+          drawn++
+        }
+      }
+
+      // Put the played cards back into the discard pile
+      state.discardPile.push(...temporarilyRemoved)
+
+      return `Extra Power (Green): recovered ${drawn} card(s) from discard pile`
     }
     case CardColor.Yellow: {
-      // Yellow: reverse direction (bonus: reverse + skip next)
-      state.direction =
-        state.direction === 'clockwise' ? 'counter_clockwise' : 'clockwise'
-      return hasBonus
-        ? 'Extra Power (Yellow): reversed direction and skip next player'
-        : 'Extra Power (Yellow): reversed direction'
+      // Yellow: steal 1 random card (bonus: steal 3)
+      const count = hasBonus ? 3 : 1
+      let stolen = 0
+      for (let i = 0; i < count; i++) {
+        const opponentsWithCards = getActiveOpponents(state).filter(o => o.hand.length > 0)
+        if (opponentsWithCards.length === 0) break
+        const opp = opponentsWithCards[Math.floor(Math.random() * opponentsWithCards.length)]
+        const cardIndex = Math.floor(Math.random() * opp.hand.length)
+        const [card] = opp.hand.splice(cardIndex, 1)
+        player.hand.push(card)
+        stolen++
+      }
+      return `Extra Power (Yellow): stole ${stolen} random card(s) from opponents`
     }
     case CardColor.Purple: {
-      // Purple: opponents draw 1 (bonus: opponents draw 2)
-      const count = hasBonus ? 2 : 1
+      // Purple: opponents discard 1 random card (bonus: discard 3)
+      const count = hasBonus ? 3 : 1
       const opponents = getActiveOpponents(state)
       for (const opponent of opponents) {
-        drawCards(state, opponent, count)
+        for (let i = 0; i < count; i++) {
+          if (opponent.hand.length > 0) {
+            const cardIndex = Math.floor(Math.random() * opponent.hand.length)
+            const [discarded] = opponent.hand.splice(cardIndex, 1)
+            state.discardPile.push(discarded)
+          }
+        }
       }
-      return `Extra Power (Purple): opponents drew ${count} card(s) each`
+      return `Extra Power (Purple): opponents discarded ${count} card(s) each`
     }
     default:
       return 'Extra Power: no effect'
@@ -375,23 +418,29 @@ export function executeSteal(
 
   if (!attacker || !target || target.hand.length === 0) return
 
-  // Check for Trap in target's hand
-  const trapIndex = target.hand.findIndex((c) => c.type === CardType.Trap)
-  if (trapIndex !== -1) {
-    // Trap activates: the trap card + 1 more card are discarded from the attacker
-    const [trap] = target.hand.splice(trapIndex, 1)
-    state.discardPile.push(trap)
-
-    if (attacker.hand.length > 0) {
-      const [discarded] = attacker.hand.splice(0, 1)
-      state.discardPile.push(discarded)
-    }
-    return
-  }
-
   const stealCount = Math.min(count, target.hand.length)
-  const stolen = target.hand.splice(0, stealCount)
-  attacker.hand.push(...stolen)
+  
+  for (let i = 0; i < stealCount; i++) {
+    if (target.hand.length === 0) break
+
+    // Steal a random card
+    const cardIndex = Math.floor(Math.random() * target.hand.length)
+    const [stolenCard] = target.hand.splice(cardIndex, 1)
+
+    if (stolenCard.type === CardType.Trap) {
+      // Trap activates: the trap card + 1 more card are discarded from the attacker
+      state.discardPile.push(stolenCard)
+      
+      // Attacker loses a card
+      if (attacker.hand.length > 0) {
+        const attackerDiscardIndex = Math.floor(Math.random() * attacker.hand.length)
+        const [discarded] = attacker.hand.splice(attackerDiscardIndex, 1)
+        state.discardPile.push(discarded)
+      }
+    } else {
+      attacker.hand.push(stolenCard)
+    }
+  }
 }
 
 /**

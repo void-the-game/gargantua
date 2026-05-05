@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Void Game - Socket Test Client</title>
+  <script src="https://cdn.socket.io/4.8.0/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-card: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: var(--bg-dark); 
+      color: var(--text-main); 
+      margin: 0; 
+      display: flex; 
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    h2 { font-size: 1.25rem; font-weight: 600; color: #e2e8f0; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1rem; font-weight: 600; color: #cbd5e1; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+    
+    .panel { 
+      padding: 1.5rem; 
+      overflow-y: auto; 
+    }
+    
+    #left-panel { flex: 0 0 320px; background: var(--bg-dark); border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 2rem; }
+    #center-panel { flex: 1; background: var(--bg-panel); display: flex; flex-direction: column; }
+    #right-panel { flex: 0 0 400px; background: #0b0f19; border-left: 1px solid var(--border); font-family: 'Fira Code', monospace; }
+
+    /* Forms & Buttons */
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    label { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
+    
+    input { 
+      background: var(--bg-dark); 
+      color: var(--text-main); 
+      border: 1px solid var(--border); 
+      padding: 0.6rem; 
+      border-radius: 0.375rem; 
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--primary); }
+
+    button { 
+      background: var(--bg-card); 
+      color: var(--text-main); 
+      border: 1px solid var(--border); 
+      padding: 0.6rem 1rem; 
+      border-radius: 0.375rem; 
+      font-weight: 500;
+      cursor: pointer; 
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    button:hover { background: #475569; }
+    button.primary { background: var(--primary); border-color: var(--primary); }
+    button.primary:hover { background: var(--primary-hover); }
+
+    /* Game Info Board */
+    .info-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      background: var(--bg-dark);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+    }
+    .info-stat { display: flex; flex-direction: column; gap: 0.25rem; }
+    .info-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-weight: 600; font-size: 1.1rem; color: var(--primary); }
+
+    /* Cards */
+    #hand-container { display: flex; flex-wrap: wrap; gap: 1rem; }
+    .card { 
+      width: 110px; 
+      height: 160px;
+      display: flex; 
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg-dark);
+      border: 2px solid var(--border); 
+      border-radius: 0.5rem; 
+      cursor: pointer; 
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25); }
+    
+    .card-type { font-weight: 700; text-align: center; font-size: 0.9rem; padding: 0 0.5rem; z-index: 2; text-transform: capitalize; }
+    .card-id { font-size: 0.55rem; color: rgba(255,255,255,0.4); margin-top: 0.5rem; z-index: 2; font-family: 'Fira Code', monospace; word-break: break-all; padding: 0 0.25rem; text-align: center; }
+    
+    /* Card Colors */
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 1;
+    }
+    .card.blue { border-color: rgba(59, 130, 246, 0.5); }
+    .card.blue::before { background: #3b82f6; }
+    
+    .card.green { border-color: rgba(34, 197, 94, 0.5); }
+    .card.green::before { background: #22c55e; }
+    
+    .card.yellow { border-color: rgba(234, 179, 8, 0.5); }
+    .card.yellow::before { background: #eab308; }
+    
+    .card.purple { border-color: rgba(168, 85, 247, 0.5); }
+    .card.purple::before { background: #a855f7; }
+    
+    .card.white { border-color: rgba(248, 250, 252, 0.5); }
+    .card.white::before { background: #f8fafc; }
+
+    /* Opponents JSON Area */
+    pre#opponents-json {
+      background: var(--bg-dark);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      overflow-x: auto;
+    }
+
+    /* Logs */
+    .log-entry { margin-bottom: 0.75rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; font-size: 0.8rem;}
+    .log-time { color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.25rem; display: flex; justify-content: space-between;}
+    .log-tag { background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 600; color: #fff;}
+    .log-tag.emit { background: #0284c7; }
+    .log-tag.receive { background: #059669; }
+    .log-tag.error { background: #dc2626; }
+    .log-data { background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem; color: #93a5b1; overflow-x: auto; white-space: pre-wrap;}
+
+    /* Utilities */
+    .status-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--danger); }
+    .status-indicator.connected { background: var(--success); }
+    .flex-row { display: flex; gap: 0.5rem; }
+    .flex-1 { flex: 1; }
+
+  </style>
+</head>
+<body>
+
+  <!-- LEFT PANEL: Controls -->
+  <div id="left-panel" class="panel">
+    
+    <div>
+      <h2>Connection</h2>
+      <div style="display: flex; align-items: center; margin-bottom: 1rem; font-size: 0.875rem;">
+        <div id="status-dot" class="status-indicator"></div>
+        <span id="conn-status" style="color: var(--text-muted);">Disconnected</span>
+      </div>
+      <div class="flex-row">
+        <button id="btn-connect" class="primary flex-1">Connect</button>
+        <button id="btn-disconnect" class="flex-1">Disconnect</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>Lobby</h2>
+      <div class="form-group">
+        <label>Player Name</label>
+        <input type="text" id="inp-name" placeholder="E.g., Alice" value="Player1">
+      </div>
+      <button id="btn-create" style="width: 100%; margin-bottom: 1.5rem;">Create New Room</button>
+      
+      <div style="position: relative; text-align: center; margin-bottom: 1.5rem;">
+        <span style="background: var(--bg-dark); padding: 0 10px; color: var(--text-muted); font-size: 0.8rem; position: relative; z-index: 1;">OR</span>
+        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border);"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Room Code</label>
+        <div class="flex-row">
+          <input type="text" id="inp-code" placeholder="6 chars" class="flex-1">
+          <button id="btn-join">Join</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2>Game Actions</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1.5rem;">
+        <button id="btn-start" class="primary">Start Match</button>
+        <button id="btn-req-state">Refresh State</button>
+      </div>
+      <button id="btn-pass" style="width: 100%; margin-bottom: 1.5rem; border-color: var(--primary); color: var(--primary);">Pass Turn</button>
+      
+      <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 1rem;">
+        <h3 style="color: #fca5a5; margin-top: 0; margin-bottom: 0.5rem;">Interrupt Attack</h3>
+        <p style="font-size: 0.75rem; color: #f87171; margin-top: 0; margin-bottom: 0.75rem;">Play a reaction card out of turn.</p>
+        <input type="text" id="inp-react-card" placeholder="Reaction Card ID" style="width: 100%; margin-bottom: 0.5rem; background: rgba(0,0,0,0.2);">
+        <button id="btn-react" style="width: 100%; background: var(--danger); border-color: var(--danger); color: white;">Play Reaction</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER PANEL: Game Board -->
+  <div id="center-panel" class="panel">
+    <h2>Game Board</h2>
+    
+    <div class="info-board">
+      <div class="info-stat">
+        <span class="info-label">Room ID</span>
+        <span class="info-value" id="lbl-roomid" style="font-size: 0.9rem;">-</span>
+      </div>
+      <div class="info-stat">
+        <span class="info-label">Turn Index</span>
+        <span class="info-value" id="lbl-turn">-</span>
+      </div>
+      <div class="info-stat">
+        <span class="info-label">Phase</span>
+        <span class="info-value" id="lbl-phase" style="text-transform: capitalize;">-</span>
+      </div>
+    </div>
+    
+    <h3>Your Hand</h3>
+    <div id="hand-container">
+      <div style="color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">Cards will appear here when match starts...</div>
+    </div>
+
+    <h3>Opponents State</h3>
+    <pre id="opponents-json">Awaiting game state...</pre>
+  </div>
+
+  <!-- RIGHT PANEL: Console -->
+  <div id="right-panel" class="panel">
+    <h2 style="font-family: 'Inter', sans-serif;">Event Log</h2>
+    <div id="log-container"></div>
+  </div>
+
+  <script>
+    let socket = null;
+    let currentRoomId = null;
+    let myPlayerId = null;
+
+    // --- Tradução e Descrição das Cartas ---
+    const CARD_INFO = {
+      'essence': { label: 'Essência', desc: 'Sua energia base. Sozinha não faz nada, mas comba com Poder Extra.' },
+      'joker': { label: 'Coringa', desc: 'Uma essência selvagem de qualquer cor. Imune a roubos.' },
+      'black_hole': { label: 'Buraco Negro', desc: 'Suga as mãos de todos, embaralha e redistribui no centro.' },
+      'vortex': { label: 'Vórtex', desc: 'Você escolhe o sentido da rotação e passa todas as mãos para o lado.' },
+      'buy_plus_1': { label: 'Compra +1', desc: 'Acumulável. Obriga o próximo a comprar cartas e perder a vez se não defender.' },
+      'buy_plus_2': { label: 'Compra +2', desc: 'Acumulável. Obriga o próximo a comprar cartas e perder a vez se não defender.' },
+      'steal_next_1': { label: 'Roubo Prox 1', desc: 'Rouba 1 carta aleatória do próximo jogador.' },
+      'steal_prev_1': { label: 'Roubo Ant 1', desc: 'Rouba 1 carta aleatória do jogador anterior.' },
+      'steal_any_1': { label: 'Roubo Livre 1', desc: 'Rouba 1 carta de qualquer jogador.' },
+      'trap': { label: 'Armadilha', desc: 'Quem roubar de você compra +2 e perde a vez. Fica ativa na sua mesa.' },
+      'recycle': { label: 'Reciclar', desc: 'Descarte X cartas da mão e compre X novas.' },
+      'block_purchase': { label: 'Bloqueia Compra', desc: 'O próximo não compra a carta obrigatória do turno.' },
+      'swap_next_hand': { label: 'Trocar Prox', desc: 'Troca sua mão com a do próximo jogador.' },
+      'swap_prev_hand': { label: 'Trocar Ant', desc: 'Troca sua mão com a do jogador anterior.' },
+      'swap_any_hand': { label: 'Trocar Livre', desc: 'Troca sua mão com a de qualquer jogador.' },
+      'extra_power': { label: 'Poder Extra', desc: 'Combe com uma essência da mesma cor para usar o poder oculto.' },
+      'block_steal': { label: 'Bloqueia Roubo', desc: '[REAÇÃO] Defende você contra roubos (diretos ou em área).' },
+      'reflect': { label: 'Refletir', desc: '[REAÇÃO] Devolve o roubo para o atacante.' },
+      'nullify': { label: 'Anular', desc: '[REAÇÃO] Anula qualquer carta jogada (exceto Poder Extra).' },
+    };
+
+    const formatJSON = (obj) => {
+      return JSON.stringify(obj, null, 2);
+    }
+
+    const log = (msg, type = 'receive', data = null) => {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      const time = new Date().toLocaleTimeString();
+      
+      let badgeClass = 'receive';
+      if (type === 'emit') badgeClass = 'emit';
+      if (type === 'error') badgeClass = 'error';
+
+      let text = `
+        <div class="log-time">
+          <span>[${time}]</span>
+          <span class="log-tag ${badgeClass}">${type.toUpperCase()}</span>
+        </div>
+        <div style="font-weight: 500; color: #e2e8f0;">${msg}</div>
+      `;
+      if (data) {
+        text += `<div class="log-data">${formatJSON(data)}</div>`;
+      }
+      div.innerHTML = text;
+      const container = document.getElementById('log-container');
+      container.prepend(div);
+    };
+
+    // UI Elements
+    const btnConnect = document.getElementById('btn-connect');
+    const btnDisconnect = document.getElementById('btn-disconnect');
+    const lblStatus = document.getElementById('conn-status');
+    const dotStatus = document.getElementById('status-dot');
+    const inpName = document.getElementById('inp-name');
+    
+    btnConnect.onclick = () => {
+      if (socket) socket.disconnect();
+      socket = io('http://localhost:3000');
+      
+      socket.on('connect', () => {
+        lblStatus.textContent = 'Connected: ' + socket.id;
+        dotStatus.classList.add('connected');
+        myPlayerId = socket.id;
+        log('Connected successfully', 'receive', { socketId: socket.id });
+      });
+
+      socket.on('disconnect', () => {
+        lblStatus.textContent = 'Disconnected';
+        dotStatus.classList.remove('connected');
+        log('Disconnected from server', 'error');
+      });
+
+      socket.on('error', (err) => log(err.message || 'Error occurred', 'error', err));
+      
+      socket.on('room:created', (data) => {
+        currentRoomId = data.roomId;
+        document.getElementById('lbl-roomid').textContent = data.code;
+        log('room:created', 'receive', data);
+      });
+
+      socket.on('room:player_joined', (data) => log('room:player_joined', 'receive', data));
+      socket.on('room:player_left', (data) => log('room:player_left', 'receive', data));
+      socket.on('card:played', (data) => log('card:played', 'receive', data));
+      socket.on('interrupt:available', (data) => log('interrupt:available', 'receive', data));
+      socket.on('match:end', (data) => log('match:end', 'receive', data));
+      
+      socket.on('discard:required', (data) => {
+        log('discard:required', 'receive', data);
+        let msg = '';
+        if (data.reason === 'vortex') {
+          msg = `VÓRTEX: Oponente usou um Vórtex da cor [${data.requiredColor}]. Você deve descartar 1 carta dessa cor (ou Coringa).\nCole o ID aqui, ou deixe vazio para sofrer a penalidade (ter 1 carta roubada).`;
+        } else {
+          msg = `BURACO NEGRO: Oponente usou Buraco Negro [${data.requiredColor}]. Você deve descartar 1 carta dessa cor (ou Coringa).\nSe você NÃO enviar a cor correta, você deve colar o ID de EXATAMENTE 2 cartas da sua mão para descartar (separadas por vírgula).`;
+        }
+        const input = prompt(msg);
+        const cardIds = input ? input.split(',').map(s => s.trim()).filter(s => s) : [];
+        const payload = { roomId: currentRoomId, cardIds };
+        socket.emit('discard:submit', payload);
+        log('discard:submit', 'emit', payload);
+      });
+      
+      socket.on('state:update', (state) => {
+        log('state:update', 'receive', { turnNumber: state.turnNumber, phase: state.phase });
+        
+        // --- TURN INDICATOR LOGIC ---
+        const activePlayer = state.players[state.currentTurnIndex];
+        const isMyTurn = (activePlayer && (activePlayer.id === myPlayerId || activePlayer.socketId === myPlayerId));
+        
+        const turnLabel = document.getElementById('lbl-turn');
+        if (isMyTurn) {
+          turnLabel.innerHTML = `<span style="color: var(--success); font-weight: 900; border: 1px solid var(--success); padding: 2px 6px; border-radius: 4px;">YOUR TURN!</span>`;
+        } else {
+          turnLabel.innerHTML = `<span style="color: var(--danger);">Opponent's Turn (${activePlayer ? activePlayer.name : '?'})</span>`;
+        }
+
+        document.getElementById('lbl-phase').textContent = state.phase;
+        
+        // Find my hand
+        const me = state.players.find(p => p.id === myPlayerId || p.socketId === myPlayerId);
+        const opponents = state.players.filter(p => p.id !== myPlayerId && p.socketId !== myPlayerId);
+        
+        document.getElementById('opponents-json').textContent = formatJSON(opponents);
+
+        const handContainer = document.getElementById('hand-container');
+        handContainer.innerHTML = '';
+        
+        if (me && Array.isArray(me.hand)) {
+          if (me.hand.length === 0) {
+            handContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">Hand is empty</div>';
+          }
+          me.hand.forEach(card => {
+            const btn = document.createElement('div');
+            btn.className = `card ${card.color}`;
+            
+            const info = CARD_INFO[card.type] || { label: card.type, desc: 'Sem descrição.' };
+            
+            btn.innerHTML = `
+              <span class="card-type">${info.label}</span>
+              <span class="card-id">${card.id}</span>
+            `;
+            btn.title = info.desc; // Shows description on mouse hover
+            
+            btn.onclick = () => {
+              if (confirm(`Quer jogar a carta [${info.label.toUpperCase()}]?\nEfeito: ${info.desc}`)) {
+                const payload = {
+                  roomId: currentRoomId,
+                  cardId: card.id
+                };
+                
+                if (card.type === 'recycle') {
+                  const extraId = prompt("RECICLAR: Cole o ID de 1 carta extra da sua mão para descartar junto (ou deixe em branco para descartar apenas o Reciclar e puxar 1 carta):");
+                  if (extraId) {
+                    payload.recycleCardIds = [extraId.trim()];
+                  }
+                } else if (card.type === 'extra_power') {
+                  const essenceId = prompt("PODER EXTRA: Cole o ID da Essência da mesma cor ou Coringa (opcional para ganhar o bônus):");
+                  if (essenceId) {
+                    payload.essenceCardId = essenceId.trim();
+                  }
+                }
+
+                if (state.phase === 'react' && ['block_steal', 'reflect', 'nullify'].includes(card.type)) {
+                  socket.emit('interrupt:play', payload);
+                  log('interrupt:play', 'emit', payload);
+                } else {
+                  socket.emit('card:play', payload);
+                  log('card:play', 'emit', payload);
+                }
+              }
+            };
+            handContainer.appendChild(btn);
+          });
+        }
+      });
+    };
+
+    btnDisconnect.onclick = () => socket && socket.disconnect();
+
+    document.getElementById('btn-create').onclick = () => {
+      log('room:create', 'emit', { playerName: inpName.value });
+      socket.emit('room:create', { playerName: inpName.value }, (res) => {
+        currentRoomId = res.roomId;
+        document.getElementById('lbl-roomid').textContent = res.code;
+      });
+    };
+
+    document.getElementById('btn-join').onclick = () => {
+      const code = document.getElementById('inp-code').value.toUpperCase();
+      log('room:join', 'emit', { code, playerName: inpName.value });
+      socket.emit('room:join', { code, playerName: inpName.value }, (res) => {
+        currentRoomId = res.roomId;
+        document.getElementById('lbl-roomid').textContent = res.code;
+      });
+    };
+
+    document.getElementById('btn-start').onclick = () => {
+      log('match:start', 'emit', { roomId: currentRoomId });
+      socket.emit('match:start', { roomId: currentRoomId });
+    };
+
+    document.getElementById('btn-pass').onclick = () => {
+      log('turn:pass', 'emit', { roomId: currentRoomId });
+      socket.emit('turn:pass', { roomId: currentRoomId });
+    };
+
+    document.getElementById('btn-req-state').onclick = () => {
+      log('state:request', 'emit', { roomId: currentRoomId });
+      socket.emit('state:request', { roomId: currentRoomId });
+    };
+
+    document.getElementById('btn-react').onclick = () => {
+      const cardId = document.getElementById('inp-react-card').value;
+      log('interrupt:play', 'emit', { roomId: currentRoomId, cardId });
+      socket.emit('interrupt:play', { roomId: currentRoomId, cardId });
+    };
+
+  </script>
+</body>
+</html>
