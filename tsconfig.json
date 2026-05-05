@@ -12,6 +12,7 @@
     "paths": {
       "@/*": ["./*"]
     },
+    "types": ["jest", "node"],
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
