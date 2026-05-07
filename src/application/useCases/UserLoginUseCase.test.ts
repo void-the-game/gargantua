@@ -13,23 +13,27 @@ describe('UserLoginUseCase', () => {
     id: '123',
     email: 'xpto@example.com',
     password: 'hashed-password',
-    username: 'xpto-da-silva'
+    username: 'xpto-da-silva',
   }
 
   beforeEach(() => {
     userRepository = {
-      getUserByEmail: jest.fn()
+      getUserByEmail: jest.fn(),
     } as any
 
     passwordHasher = {
-      compare: jest.fn()
+      compare: jest.fn(),
     } as any
 
     jwtTokenService = {
-      generateToken: jest.fn()
+      generateToken: jest.fn(),
     } as any
 
-    useCase = new UserLoginUseCase(userRepository, passwordHasher, jwtTokenService)
+    useCase = new UserLoginUseCase(
+      userRepository,
+      passwordHasher,
+      jwtTokenService
+    )
   })
 
   it('should return USER_NOT_FOUND if user does not exist', async () => {
@@ -39,18 +43,21 @@ describe('UserLoginUseCase', () => {
 
     expect(result).toEqual({
       success: false,
-      message: 'User not found'
+      message: 'User not found',
     })
   })
 
   it('should return USER_NOT_FOUND if user has no id', async () => {
-    userRepository.getUserByEmail.mockResolvedValue({ ...mockUser, id: undefined })
+    userRepository.getUserByEmail.mockResolvedValue({
+      ...mockUser,
+      id: undefined,
+    })
 
     const result = await useCase.execute('test@example.com', 'password')
 
     expect(result).toEqual({
       success: false,
-      message: 'User not found'
+      message: 'User not found',
     })
   })
 
@@ -62,7 +69,7 @@ describe('UserLoginUseCase', () => {
 
     expect(result).toEqual({
       success: false,
-      message: 'Incorrect user or password'
+      message: 'Incorrect user or password',
     })
   })
 
@@ -75,9 +82,10 @@ describe('UserLoginUseCase', () => {
 
     expect(result).toEqual({
       success: true,
+      id: '123',
       username: 'xpto-da-silva',
       message: 'Logged in successfully',
-      accessToken: 'jwt-access-token'
+      accessToken: 'jwt-access-token',
     })
     expect(jwtTokenService.generateToken).toHaveBeenCalledWith('123', 'ACCESS')
   })
