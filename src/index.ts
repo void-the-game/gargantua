@@ -1,3 +1,7 @@
+import { setupAppInsights } from '@/config/appInsights'
+// Initialize App Insights before imported modules to guarantee tracing hooks
+setupAppInsights()
+
 import { createServer } from 'http'
 import app from './app'
 import { dbConnection } from '@/config/connection'
