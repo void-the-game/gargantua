@@ -11,11 +11,11 @@ export class ProfileRepositoryMongoose implements ProfileRepository {
       nickname: created.nickname || '',
       avatar: created.avatar || '',
       bio: created.bio || '',
-      pontos: created.pontos,
-      nivel: created.nivel,
-      taxaVitoria: created.taxaVitoria,
+      points: created.points,
+      level: created.level,
+      winRate: created.winRate,
       ranking: created.ranking,
-      partidasJogadas: created.partidasJogadas,
+      gamesPlayed: created.gamesPlayed,
     })
   }
 
@@ -31,11 +31,11 @@ export class ProfileRepositoryMongoose implements ProfileRepository {
       nickname: doc.nickname || '',
       avatar: doc.avatar || '',
       bio: doc.bio || '',
-      pontos: doc.pontos,
-      nivel: doc.nivel,
-      taxaVitoria: doc.taxaVitoria,
+      points: doc.points,
+      level: doc.level,
+      winRate: doc.winRate,
       ranking: doc.ranking,
-      partidasJogadas: doc.partidasJogadas,
+      gamesPlayed: doc.gamesPlayed,
     }
   }
 
@@ -55,11 +55,11 @@ export class ProfileRepositoryMongoose implements ProfileRepository {
       nickname: updated.nickname || '',
       avatar: updated.avatar || '',
       bio: updated.bio || '',
-      pontos: updated.pontos,
-      nivel: updated.nivel,
-      taxaVitoria: updated.taxaVitoria,
+      points: updated.points,
+      level: updated.level,
+      winRate: updated.winRate,
       ranking: updated.ranking,
-      partidasJogadas: updated.partidasJogadas,
+      gamesPlayed: updated.gamesPlayed,
     })
   }
 }

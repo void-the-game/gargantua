@@ -47,6 +47,16 @@ export class AzureBlobService {
     return blobs
   }
 
+  async getBlobUrl(blobName: string): Promise<string> {
+    const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME
+    return `https://${this.blobServiceClient.accountName}.blob.core.windows.net/${containerName}/${blobName}`
+  }
+
+  async blobExists(blobName: string): Promise<boolean> {
+    const blockBlobClient = this.containerClient.getBlockBlobClient(blobName)
+    return blockBlobClient.exists()
+  }
+
   async deleteBlob(blobName: string): Promise<void> {
     const blockBlobClient = this.containerClient.getBlockBlobClient(blobName)
     await blockBlobClient.deleteIfExists()

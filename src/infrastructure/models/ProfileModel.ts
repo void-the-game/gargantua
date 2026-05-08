@@ -5,11 +5,11 @@ interface IProfile extends Document {
   nickname?: string
   avatar?: string
   bio?: string
-  pontos: number
-  nivel: number
-  taxaVitoria: number
+  points: number
+  level: number
+  winRate: number
   ranking: number
-  partidasJogadas: number
+  gamesPlayed: number
 }
 
 const ProfileSchema = new Schema<IProfile>({
@@ -22,14 +22,14 @@ const ProfileSchema = new Schema<IProfile>({
   nickname: { type: String, default: '' },
   avatar: { type: String, default: '' },
   bio: { type: String, default: '' },
-  pontos: { type: Number, default: 0 },
-  nivel: { type: Number, default: 1 },
-  taxaVitoria: { type: Number, default: 0 },
+  points: { type: Number, default: 0 },
+  level: { type: Number, default: 1 },
+  winRate: { type: Number, default: 0 },
   ranking: { type: Number, default: 0 },
-  partidasJogadas: { type: Number, default: 0 },
+  gamesPlayed: { type: Number, default: 0 },
 })
 
 ProfileSchema.index({ ranking: 1 })
-ProfileSchema.index({ pontos: -1 })
+ProfileSchema.index({ points: -1 })
 
 export const ProfileModel = mongoose.model<IProfile>('Profile', ProfileSchema)

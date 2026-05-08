@@ -14,11 +14,11 @@ export class CreateProfileUseCase {
       userId,
       nickname: data.nickname,
       bio: data.bio,
-      pontos: 0,
-      nivel: 1,
-      taxaVitoria: 0,
+      points: 0,
+      level: 1,
+      winRate: 0,
       ranking: 0,
-      partidasJogadas: 0,
+      gamesPlayed: 0,
     })
 
     return this.profileRepository.create(profile)

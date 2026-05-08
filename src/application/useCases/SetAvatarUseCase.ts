@@ -8,20 +8,18 @@ export class SetAvatarUseCase {
   ) {}
 
   async execute(userId: string, avatarName: string) {
-    const avatars = await this.blobService.listBlobs()
-    const avatar = avatars.find((a) => a.name === avatarName)
-
-    if (!avatar) {
+    const exists = await this.blobService.blobExists(avatarName)
+    if (!exists) {
       throw new Error('AVATAR_INVALID')
     }
-    console.log(avatar)
+    const avatarUrl = await this.blobService.getBlobUrl(avatarName)
     const profile = await this.profileRepository.update(userId, {
-      avatar: avatar.url,
+      avatar: avatarUrl,
     })
+
     if (!profile) {
       throw new Error('NOT_FOUND')
     }
-
-    return avatar.url
+    return avatarUrl
   }
 }

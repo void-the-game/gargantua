@@ -4,11 +4,11 @@ export class Profile {
   nickname?: string
   avatar?: string
   bio?: string
-  pontos!: number
-  nivel!: number
-  taxaVitoria!: number
+  points!: number
+  level!: number
+  winRate!: number
   ranking!: number
-  partidasJogadas!: number
+  gamesPlayed!: number
 
   constructor(data: Partial<Profile>) {
     Object.assign(this, data)
