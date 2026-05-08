@@ -7,6 +7,7 @@ type UserLoginUseCaseResponse = {
   message?: string
   success: boolean
   username?: string
+  id?: string
 }
 
 enum ERRORS_MESSAGES {
@@ -16,29 +17,44 @@ enum ERRORS_MESSAGES {
 
 export class UserLoginUseCase {
   constructor(
-    private userRepository: UserRepository, 
+    private userRepository: UserRepository,
     private passwordHasher: PasswordHasher,
     private jwtTokenService: JwtTokenService
-) { }
+  ) {}
 
-  async execute(email: string, password: string): Promise<UserLoginUseCaseResponse> {
+  async execute(
+    email: string,
+    password: string
+  ): Promise<UserLoginUseCaseResponse> {
     const user = await this.userRepository.getUserByEmail(email)
 
-    if (!user) return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
+    if (!user)
+      return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
 
-    if (!user!.id) return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
+    if (!user!.id)
+      return { success: false, message: ERRORS_MESSAGES.USER_NOT_FOUND }
 
     const isPasswordValid = await this.passwordHasher.compare(
       password,
       user.password
     )
 
-    if (!isPasswordValid) return { success: false, message: ERRORS_MESSAGES.PASSWORD_INCORRECT }
+    if (!isPasswordValid)
+      return { success: false, message: ERRORS_MESSAGES.PASSWORD_INCORRECT }
 
     const username = user.username
     const userId = user.id
-    const userAccessToken = await this.jwtTokenService.generateToken(userId, 'ACCESS')
+    const userAccessToken = await this.jwtTokenService.generateToken(
+      userId,
+      'ACCESS'
+    )
 
-    return { success: true, username, message: 'Logged in successfully', accessToken: userAccessToken }
+    return {
+      success: true,
+      username,
+      message: 'Logged in successfully',
+      accessToken: userAccessToken,
+      id: userId,
+    }
   }
 }

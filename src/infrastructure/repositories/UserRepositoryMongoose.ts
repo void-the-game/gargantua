@@ -12,6 +12,10 @@ export class UserRepositoryMongoose implements UserRepository {
     return await UserModel.findOne({ username })
   }
 
+  async getUserById(userId: string): Promise<User | null> {
+    return await UserModel.findById(userId)
+  }
+
   async create(user: User): Promise<User> {
     const newUser = new UserModel(user)
     await newUser.save()
@@ -26,8 +30,14 @@ export class UserRepositoryMongoose implements UserRepository {
     return await UserModel.exists({ username })
   }
 
-  async update(userId: string, data: Partial<User>): Promise<void> {
-    await UserModel.updateOne({ _id: userId }, data).exec()
+  async update(userId: string, data: Partial<User>): Promise<User | null> {
+    return await UserModel.findByIdAndUpdate(userId, data, {
+      new: true,
+    })
+  }
+
+  async delete(userId: string): Promise<unknown> {
+    return await UserModel.deleteOne({ _id: userId })
   }
 
   async verifyEmail(userId: string, token: string): Promise<unknown> {
@@ -38,7 +48,10 @@ export class UserRepositoryMongoose implements UserRepository {
 
     if (userToken.token !== token) throw new Error('Invalid token')
 
-    const emailVerified = await UserModel.updateOne({ _id: userId }, { verified: true }).exec()
+    const emailVerified = await UserModel.updateOne(
+      { _id: userId },
+      { verified: true }
+    ).exec()
 
     return emailVerified
   }

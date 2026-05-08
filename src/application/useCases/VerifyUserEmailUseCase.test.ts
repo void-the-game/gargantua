@@ -35,7 +35,7 @@ describe('VerifyEmailUseCase', () => {
   it('should return success when token is valid and not expired', async () => {
     tokenService.verifyToken.mockResolvedValue({ userId, isValid: true })
     tokenRepository.find.mockResolvedValue({ token: validToken, userId, expiresAt: futureDate, type: 'EMAIL_VERIFICATION' })
-    userRepository.update.mockResolvedValue(undefined)
+    userRepository.update.mockResolvedValue(null)
     tokenRepository.delete.mockResolvedValue(true)
 
     const result = await useCase.execute(validToken)
@@ -83,7 +83,7 @@ describe('VerifyEmailUseCase', () => {
   it('should return { success: false } if token deletion fails', async () => {
     tokenService.verifyToken.mockResolvedValue({ userId, isValid: true })
     tokenRepository.find.mockResolvedValue({ token: validToken, userId, expiresAt: futureDate, type: 'EMAIL_VERIFICATION' })
-    userRepository.update.mockResolvedValue(undefined)
+    userRepository.update.mockResolvedValue(null)
     tokenRepository.delete.mockResolvedValue(false)
 
     const result = await useCase.execute(validToken)
