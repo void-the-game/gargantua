@@ -227,15 +227,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           }
         }
 
-        // Start-of-turn mandatory draw (1 card) if not blocked
-        const activePlayer = getCurrentPlayer(state)
-        if (!activePlayer.isEliminated) {
-          if (state.blockPurchaseFlag) {
-            state.blockPurchaseFlag = false
-          } else {
-            drawCards(state, activePlayer, 1)
-          }
-        }
+
 
         // Check match end after turn advance
         const winnerId = checkMatchEnd(state)

@@ -45,6 +45,7 @@ function createGameState(players: Player[], opts: Partial<GameState> = {}): Game
     pendingInterrupt: null,
     pendingDiscard: null,
     blockPurchaseFlag: false,
+    purchaseBlockedThisTurn: false,
     hasPlayedCardThisTurn: false,
     ...opts,
   }
@@ -91,6 +92,54 @@ describe('TurnManager', () => {
       advanceTurn(state)
 
       expect(state.currentTurnIndex).toBe(2) // skipped p2
+    })
+
+    it('should draw exactly 1 card at the start of a normal turn', () => {
+      const p1 = createPlayer('p1', 'A')
+      const p2 = createPlayer('p2', 'B')
+      const state = createGameState([p1, p2])
+      const deckSizeBefore = state.deck.length
+
+      advanceTurn(state)
+
+      expect(p2.hand).toHaveLength(1)
+      expect(state.deck).toHaveLength(deckSizeBefore - 1)
+    })
+
+    it('should skip auto-draw when blockPurchaseFlag is active', () => {
+      const p1 = createPlayer('p1', 'A')
+      const p2 = createPlayer('p2', 'B')
+      const state = createGameState([p1, p2], { blockPurchaseFlag: true })
+      const deckSizeBefore = state.deck.length
+
+      advanceTurn(state)
+
+      expect(p2.hand).toHaveLength(0)
+      expect(state.deck).toHaveLength(deckSizeBefore)
+    })
+
+    it('should keep purchaseBlockedThisTurn=true during the blocked turn so BuyPlus is also blocked', () => {
+      const p1 = createPlayer('p1', 'A')
+      const p2 = createPlayer('p2', 'B')
+      const state = createGameState([p1, p2], { blockPurchaseFlag: true })
+
+      advanceTurn(state)
+
+      expect(state.purchaseBlockedThisTurn).toBe(true)
+      expect(state.blockPurchaseFlag).toBe(false)
+    })
+
+    it('should clear purchaseBlockedThisTurn at the start of the NEXT advanceTurn', () => {
+      const p1 = createPlayer('p1', 'A')
+      const p2 = createPlayer('p2', 'B')
+      const state = createGameState([p1, p2], { blockPurchaseFlag: true })
+
+      advanceTurn(state) // p2's blocked turn — purchaseBlockedThisTurn=true
+      advanceTurn(state) // p1's next turn — purchaseBlockedThisTurn cleared, draw happens
+
+      expect(state.purchaseBlockedThisTurn).toBe(false)
+      expect(state.blockPurchaseFlag).toBe(false)
+      expect(p1.hand).toHaveLength(1) // normal draw on p1's turn
     })
   })
 

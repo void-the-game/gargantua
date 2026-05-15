@@ -155,20 +155,19 @@ function handleVortex(card: Card, state: GameState): EffectResult {
 }
 
 function handleBuyPlus(state: GameState, amount: number): EffectResult {
-  const target = getNextPlayer(state)
+  const player = getCurrentPlayer(state)
 
-  if (state.blockPurchaseFlag) {
-    state.blockPurchaseFlag = false
+  if (state.purchaseBlockedThisTurn) {
     return {
-      description: `Compra de +${amount} foi bloqueada pelo efeito anterior!`,
+      description: `Compra de +${amount} foi bloqueada!`,
       requiresInterrupt: false,
     }
   }
 
-  const drawn = drawCards(state, target, amount)
+  const drawn = drawCards(state, player, amount)
 
   return {
-    description: `${target.name} comprou ${drawn} carta(s) extra(s)!`,
+    description: `${player.name} comprou ${drawn} carta(s) extra(s)!`,
     requiresInterrupt: false,
   }
 }

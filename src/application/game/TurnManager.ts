@@ -4,6 +4,9 @@ import { GameState, Player, TurnDirection } from '@/shared/types/game-types'
  * Advance the turn to the next active (non-eliminated) player.
  */
 export function advanceTurn(state: GameState): void {
+  // Clear the 'active block' sentinel from the previous blocked turn.
+  state.purchaseBlockedThisTurn = false
+
   const step = state.direction === TurnDirection.Clockwise ? 1 : -1
   const playerCount = state.players.length
 
@@ -20,10 +23,13 @@ export function advanceTurn(state: GameState): void {
   state.turnNumber++
   state.hasPlayedCardThisTurn = false
 
-  // Compra automática no início do turno
   if (state.blockPurchaseFlag) {
-    // Bloqueia a compra e limpa a flag para o próximo turno
+    // Consume the "mark next turn as blocked" signal.
     state.blockPurchaseFlag = false
+    // Activate the "purchases blocked THIS turn" sentinel so handleBuyPlus
+    // can also check it without interfering with future turns.
+    state.purchaseBlockedThisTurn = true
+    // No auto-draw for the incoming player.
   } else {
     drawCards(state, state.players[nextIndex], 1)
   }

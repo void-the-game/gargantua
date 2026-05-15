@@ -62,7 +62,10 @@ export interface GameState {
   phase: GamePhase
   pendingInterrupt: PendingInterrupt | null
   pendingDiscard: PendingDiscard | null
+  /** Set by BlockPurchase card: marks that the NEXT turn should skip the auto-draw and block BuyPlus. */
   blockPurchaseFlag: boolean
+  /** Set by advanceTurn when entering a blocked turn. Read by handleBuyPlus to block card effects. Cleared at the start of the following advanceTurn. */
+  purchaseBlockedThisTurn: boolean
   hasPlayedCardThisTurn: boolean
 }
 

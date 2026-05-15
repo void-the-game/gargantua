@@ -14,6 +14,7 @@ import {
   isGameError,
 } from '@/shared/errors/GameError'
 import { buildDeck, shuffleDeck, dealCards, pickStartingPlayer } from '@/application/game/DeckBuilder'
+import { drawCards } from '@/application/game/TurnManager'
 import { broadcastStateUpdate } from './StateHandler'
 
 const MIN_PLAYERS = 2
@@ -69,9 +70,14 @@ export function registerMatchHandlers(io: Server, socket: Socket): void {
           phase: GamePhase.Play,
           pendingInterrupt: null,
           blockPurchaseFlag: false,
+          purchaseBlockedThisTurn: false,
           hasPlayedCardThisTurn: false,
           pendingDiscard: null
         }
+
+        // Draw 1 card for the starting player (matches the auto-draw every
+        // subsequent player gets at the start of their turn via advanceTurn)
+        drawCards(gameState, players[startIndex], 1)
 
         // Update room
         roomStore.updateRoomStatus(roomId, RoomStatus.InProgress)
