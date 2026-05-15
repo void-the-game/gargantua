@@ -44,7 +44,7 @@ function createGameState(players: Player[], opts: Partial<GameState> = {}): Game
     phase: GamePhase.Play,
     pendingInterrupt: null,
     pendingDiscard: null,
-    blockPurchaseFlag: false,
+    blockPurchaseTurnsRemaining: 0,
     purchaseBlockedThisTurn: false,
     hasPlayedCardThisTurn: false,
     ...opts,
@@ -109,7 +109,7 @@ describe('TurnManager', () => {
     it('should skip auto-draw when blockPurchaseFlag is active', () => {
       const p1 = createPlayer('p1', 'A')
       const p2 = createPlayer('p2', 'B')
-      const state = createGameState([p1, p2], { blockPurchaseFlag: true })
+      const state = createGameState([p1, p2], { blockPurchaseTurnsRemaining: 1 })
       const deckSizeBefore = state.deck.length
 
       advanceTurn(state)
@@ -121,24 +121,24 @@ describe('TurnManager', () => {
     it('should keep purchaseBlockedThisTurn=true during the blocked turn so BuyPlus is also blocked', () => {
       const p1 = createPlayer('p1', 'A')
       const p2 = createPlayer('p2', 'B')
-      const state = createGameState([p1, p2], { blockPurchaseFlag: true })
+      const state = createGameState([p1, p2], { blockPurchaseTurnsRemaining: 1 })
 
       advanceTurn(state)
 
       expect(state.purchaseBlockedThisTurn).toBe(true)
-      expect(state.blockPurchaseFlag).toBe(false)
+      expect(state.blockPurchaseTurnsRemaining).toBe(0)
     })
 
     it('should clear purchaseBlockedThisTurn at the start of the NEXT advanceTurn', () => {
       const p1 = createPlayer('p1', 'A')
       const p2 = createPlayer('p2', 'B')
-      const state = createGameState([p1, p2], { blockPurchaseFlag: true })
+      const state = createGameState([p1, p2], { blockPurchaseTurnsRemaining: 1 })
 
       advanceTurn(state) // p2's blocked turn — purchaseBlockedThisTurn=true
       advanceTurn(state) // p1's next turn — purchaseBlockedThisTurn cleared, draw happens
 
       expect(state.purchaseBlockedThisTurn).toBe(false)
-      expect(state.blockPurchaseFlag).toBe(false)
+      expect(state.blockPurchaseTurnsRemaining).toBe(0)
       expect(p1.hand).toHaveLength(1) // normal draw on p1's turn
     })
   })

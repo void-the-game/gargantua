@@ -64,8 +64,8 @@ export interface GameState {
   phase: GamePhase
   pendingInterrupt: PendingInterrupt | null
   pendingDiscard: PendingDiscard | null
-  /** Set by BlockPurchase card: marks that the NEXT turn should skip the auto-draw and block BuyPlus. */
-  blockPurchaseFlag: boolean
+  /** Set by BlockPurchase card: marks that the purchase is blocked for N-1 turns. */
+  blockPurchaseTurnsRemaining: number
   /** Set by advanceTurn when entering a blocked turn. Read by handleBuyPlus to block card effects. Cleared at the start of the following advanceTurn. */
   purchaseBlockedThisTurn: boolean
   hasPlayedCardThisTurn: boolean
@@ -96,7 +96,7 @@ export interface PlayerView {
   phase: GamePhase
   pendingInterrupt: Omit<PendingInterrupt, 'timeoutHandle'> | null
   pendingDiscard: Omit<PendingDiscard, 'timeoutHandle'> | null
-  blockPurchaseFlag: boolean
+  blockPurchaseTurnsRemaining: number
   purchaseBlockedThisTurn: boolean
   hasPlayedCardThisTurn: boolean
 }

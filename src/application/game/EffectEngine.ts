@@ -252,10 +252,11 @@ function handleRecycle(
 }
 
 function handleBlockPurchase(state: GameState): EffectResult {
-  state.blockPurchaseFlag = true
+  const activePlayers = state.players.filter(p => !p.isEliminated).length
+  state.blockPurchaseTurnsRemaining = Math.max(0, activePlayers - 1)
 
   return {
-    description: 'Blocked purchases for the next turn',
+    description: `Blocked purchases for the next ${state.blockPurchaseTurnsRemaining} turn(s)`,
     requiresInterrupt: false,
   }
 }

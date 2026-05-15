@@ -32,7 +32,7 @@ function createGameState(players: Player[], opts: Partial<GameState> = {}): Game
     phase: GamePhase.Play,
     pendingInterrupt: null,
     pendingDiscard: null,
-    blockPurchaseFlag: false,
+    blockPurchaseTurnsRemaining: 0,
     purchaseBlockedThisTurn: false,
     hasPlayedCardThisTurn: false,
     ...opts,

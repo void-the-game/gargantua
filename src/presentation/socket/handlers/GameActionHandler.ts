@@ -79,7 +79,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           CardType.StealNextOne, CardType.StealPrevOne, CardType.StealAnyOne,
           CardType.StealNextTwo, CardType.StealPrevTwo,
           CardType.SwapNextHand, CardType.SwapPrevHand, CardType.SwapAnyHand,
-          CardType.BlockPurchase, CardType.Vortex, CardType.BlackHole
+          CardType.Vortex, CardType.BlackHole
         ].includes(card.type)
 
         if (requiresDelay) {
@@ -111,12 +111,25 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
             effectDescription: `Aguardando reações...`,
           })
         } else {
-          // Apply card effect immediately
-          const result = applyCardEffect(card, state, {
-            targetPlayerId,
-            recycleCardIds,
-            essenceCardId,
-          })
+          let resultDescription = ''
+          let requiresDiscard = false
+
+          // Check for "Total Loss" if playing draw cards during a Global Block
+          if (
+            state.blockPurchaseTurnsRemaining > 0 &&
+            [CardType.Recycle, CardType.BuyPlusOne, CardType.BuyPlusTwo].includes(card.type)
+          ) {
+            resultDescription = 'Perda total: Ações de compra estão bloqueadas na mesa.'
+          } else {
+            // Apply card effect normally
+            const result = applyCardEffect(card, state, {
+              targetPlayerId,
+              recycleCardIds,
+              essenceCardId,
+            })
+            resultDescription = result.description
+            requiresDiscard = result.requiresDiscard ?? false
+          }
 
           // Broadcast the played card (public info)
           io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
@@ -126,10 +139,10 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
               type: card.type,
               color: card.color,
             },
-            effectDescription: result.description,
+            effectDescription: resultDescription,
           })
 
-          if (result.requiresDiscard && state.pendingDiscard) {
+          if (requiresDiscard && state.pendingDiscard) {
             state.phase = GamePhase.Resolve
             const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass
 

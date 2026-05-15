@@ -70,7 +70,7 @@ export function createPlayerView(
         remainingTargetIds: state.pendingDiscard.remainingTargetIds,
       }
       : null,
-    blockPurchaseFlag: state.blockPurchaseFlag,
+    blockPurchaseTurnsRemaining: state.blockPurchaseTurnsRemaining,
     purchaseBlockedThisTurn: state.purchaseBlockedThisTurn,
     hasPlayedCardThisTurn: state.hasPlayedCardThisTurn,
   }

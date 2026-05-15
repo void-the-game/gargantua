@@ -23,10 +23,9 @@ export function advanceTurn(state: GameState): void {
   state.turnNumber++
   state.hasPlayedCardThisTurn = false
 
-  if (state.blockPurchaseFlag) {
-    // Consume the "mark next turn as blocked" signal.
-    state.blockPurchaseFlag = false
-    // Activate the "purchases blocked THIS turn" sentinel so handleBuyPlus
+  if (state.blockPurchaseTurnsRemaining > 0) {
+    state.blockPurchaseTurnsRemaining--
+    // Activate the "purchases blocked THIS turn" sentinel so card play logic
     // can also check it without interfering with future turns.
     state.purchaseBlockedThisTurn = true
     // No auto-draw for the incoming player.
