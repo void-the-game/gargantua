@@ -76,7 +76,6 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
 
         // Determine if card needs delay
         const requiresDelay = [
-          CardType.BlackHole, CardType.Vortex,
           CardType.StealNextOne, CardType.StealPrevOne, CardType.StealAnyOne,
           CardType.StealNextTwo, CardType.StealPrevTwo,
           CardType.Recycle, CardType.BlockPurchase,
@@ -131,7 +130,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
 
           if (result.requiresDiscard && state.pendingDiscard) {
             state.phase = GamePhase.Resolve
-            const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass 
+            const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass
 
             for (const targetId of pd.remainingTargetIds) {
               const targetSocket = state.players.find(p => p.id === targetId)?.socketId
@@ -142,6 +141,11 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
                 })
               }
             }
+
+            // Auto-resolve after timeout: apply penalty to players who didn't respond
+            pd.timeoutHandle = setTimeout(() => {
+              resolveDiscardTimeout(io, roomId, state)
+            }, INTERRUPT_TIMEOUT_MS)
           } else {
             // Check for eliminations
             const eliminatedIds = checkElimination(state)
@@ -279,11 +283,6 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
 
         const sourcePlayer = state.players.find(p => p.id === pd.sourcePlayerId)
 
-        const hasRequiredColor = player.hand.some(c => c.color === pd.requiredColor || c.type === CardType.Joker)
-        if (hasRequiredColor && cardsToDiscard.length !== 1) {
-          throw invalidDiscard(`Você possui a cor exigida (ou Coringa), portanto DEVE descartá-la (selecione apenas 1 carta).`)
-        }
-
         if (pd.reason === 'vortex') {
           // Expected 1 card of required color or Joker
           const validCard = cardsToDiscard.length === 1 &&
@@ -324,8 +323,9 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         // Remove from pending
         pd.remainingTargetIds = pd.remainingTargetIds.filter(id => id !== player.id)
 
-        // If everyone responded, clear pending discard and resume
+        // If everyone responded, cancel the timeout and resume
         if (pd.remainingTargetIds.length === 0) {
+          if (pd.timeoutHandle) clearTimeout(pd.timeoutHandle)
           state.pendingDiscard = null
           state.phase = GamePhase.Play
 
@@ -367,6 +367,66 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
   )
 }
 
+function resolveDiscardTimeout(
+  io: Server,
+  roomId: string,
+  state: GameState
+): void {
+  if (!state.pendingDiscard) return
+
+  const pd = state.pendingDiscard
+  const sourcePlayer = state.players.find(p => p.id === pd.sourcePlayerId)
+
+  // Apply penalty to every player who didn't respond in time
+  for (const targetId of pd.remainingTargetIds) {
+    const target = state.players.find(p => p.id === targetId)
+    if (!target || target.hand.length === 0) continue
+
+    if (pd.reason === 'vortex') {
+      // Penalty: source player steals 1 random card
+      if (sourcePlayer) {
+        const idx = Math.floor(Math.random() * target.hand.length)
+        const [stolen] = target.hand.splice(idx, 1)
+        sourcePlayer.hand.push(stolen)
+      }
+    } else if (pd.reason === 'black_hole') {
+      // Penalty: target discards 2 random cards
+      const count = Math.min(2, target.hand.length)
+      for (let i = 0; i < count; i++) {
+        const idx = Math.floor(Math.random() * target.hand.length)
+        const [discarded] = target.hand.splice(idx, 1)
+        state.discardPile.push(discarded)
+      }
+    }
+  }
+
+  state.pendingDiscard = null
+  state.phase = GamePhase.Play
+
+  const eliminatedIds = checkElimination(state)
+  for (const id of eliminatedIds) {
+    const p = state.players.find((pl) => pl.id === id)
+    if (p) {
+      io.to(roomId).emit(SocketEvents.PLAYER_ELIMINATED, {
+        playerId: p.id,
+        playerName: p.name,
+      })
+    }
+  }
+
+  const winnerId = checkMatchEnd(state)
+  if (winnerId) {
+    const winner = state.players.find((p) => p.id === winnerId)
+    state.phase = GamePhase.End
+    io.to(roomId).emit(SocketEvents.MATCH_END, {
+      winnerId,
+      winnerName: winner?.name ?? 'Unknown',
+    })
+  }
+
+  broadcastStateUpdate(io, roomId, state)
+}
+
 function resolveInterruptTimeout(
   io: Server,
   roomId: string,
@@ -396,7 +456,7 @@ function resolveInterruptTimeout(
 
     if (result.requiresDiscard && state.pendingDiscard) {
       state.phase = GamePhase.Resolve
-      const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass 
+      const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass
 
       for (const targetId of pd.remainingTargetIds) {
         const targetSocket = state.players.find(p => p.id === targetId)?.socketId
@@ -407,6 +467,10 @@ function resolveInterruptTimeout(
           })
         }
       }
+
+      pd.timeoutHandle = setTimeout(() => {
+        resolveDiscardTimeout(io, roomId, state)
+      }, INTERRUPT_TIMEOUT_MS)
     } else {
       state.phase = GamePhase.Play
     }

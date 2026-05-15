@@ -49,6 +49,7 @@ export interface PendingDiscard {
   sourcePlayerId: string
   requiredColor: string
   remainingTargetIds: string[]
+  timeoutHandle?: ReturnType<typeof setTimeout>
 }
 
 export interface GameState {
@@ -93,7 +94,7 @@ export interface PlayerView {
   turnNumber: number
   phase: GamePhase
   pendingInterrupt: Omit<PendingInterrupt, 'timeoutHandle'> | null
-  pendingDiscard: PendingDiscard | null
+  pendingDiscard: Omit<PendingDiscard, 'timeoutHandle'> | null
   blockPurchaseFlag: boolean
   hasPlayedCardThisTurn: boolean
 }
