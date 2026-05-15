@@ -5,6 +5,7 @@ import {
   CardPlayPayload,
   TurnPassPayload,
   DiscardSubmitPayload,
+  InterruptPlayPayload,
 } from '@/shared/types/socket-events'
 import { GamePhase, GameState, PendingDiscard } from '@/shared/types/game-types'
 import {
