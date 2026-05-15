@@ -74,12 +74,11 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         state.discardPile.push(card)
         state.hasPlayedCardThisTurn = true
 
-        // Determine if card needs delay
         const requiresDelay = [
           CardType.StealNextOne, CardType.StealPrevOne, CardType.StealAnyOne,
           CardType.StealNextTwo, CardType.StealPrevTwo,
-          CardType.Recycle, CardType.BlockPurchase,
-          CardType.SwapNextHand, CardType.SwapPrevHand, CardType.SwapAnyHand
+          CardType.SwapNextHand, CardType.SwapPrevHand, CardType.SwapAnyHand,
+          CardType.BlockPurchase, CardType.Vortex, CardType.BlackHole
         ].includes(card.type)
 
         if (requiresDelay) {
@@ -95,6 +94,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
             cardId: card.id,
             context: { targetPlayerId, recycleCardIds, essenceCardId },
             timeoutMs: INTERRUPT_TIMEOUT_MS,
+            nullifiedPlayerIds: [],
           }
           state.phase = GamePhase.React
           emitInterruptAvailable(io, roomId, state)
@@ -242,6 +242,68 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
             winnerId,
             winnerName: winner?.name ?? 'Unknown',
           })
+        }
+
+        broadcastStateUpdate(io, roomId, state)
+      } catch (error) {
+        emitError(socket, error)
+      }
+    }
+  )
+
+  // ─── interrupt:play ──────────────────────────────────────────
+  socket.on(
+    SocketEvents.INTERRUPT_PLAY,
+    (payload: InterruptPlayPayload) => {
+      try {
+        const { roomId, cardId } = payload
+        const room = roomStore.getRoomById(roomId)
+
+        if (!room || !room.gameState) throw noActiveMatch()
+        const state = room.gameState
+
+        if (!state.pendingInterrupt) throw new Error('Nenhuma interrupção pendente.')
+
+        const playerIndex = state.players.findIndex(p => p.socketId === socket.id || p.id === socket.id)
+        if (playerIndex === -1) throw new Error('Jogador não encontrado.')
+        const player = state.players[playerIndex]
+
+        // Check if player has the card
+        const cardIndex = player.hand.findIndex(c => c.id === cardId)
+        if (cardIndex === -1) throw cardNotInHand()
+        const card = player.hand[cardIndex]
+
+        // Only allow reaction cards
+        if (![CardType.BlockSteal, CardType.Reflect, CardType.Nullify].includes(card.type)) {
+          throw new Error('Apenas cartas de reação podem ser jogadas agora.')
+        }
+
+        // Remove card from hand and add to discard pile
+        player.hand.splice(cardIndex, 1)
+        state.discardPile.push(card)
+
+        const pi = state.pendingInterrupt
+
+        // Check if attack is multi-target (AoE)
+        const attackCard = state.discardPile.find(c => c.id === pi.cardId)
+        const isMultiTarget = attackCard && (attackCard.type === CardType.Vortex || attackCard.type === CardType.BlackHole)
+
+        // Broadcast the reaction
+        io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
+          playerId: player.id,
+          playerName: player.name,
+          card: { type: card.type, color: card.color },
+          effectDescription: `Reagiu com ${card.type}`,
+        })
+
+        if (isMultiTarget) {
+          // Multi-target: just add to nullified list, don't clear timeout
+          pi.nullifiedPlayerIds.push(player.id)
+        } else {
+          // Single-target: cancel attack completely
+          if (pi.timeoutHandle) clearTimeout(pi.timeoutHandle)
+          state.pendingInterrupt = null
+          state.phase = GamePhase.Play
         }
 
         broadcastStateUpdate(io, roomId, state)
@@ -434,7 +496,7 @@ function resolveInterruptTimeout(
 ): void {
   if (!state.pendingInterrupt) return
 
-  const { attackerId, cardId, context } = state.pendingInterrupt
+  const { attackerId, cardId, context, nullifiedPlayerIds } = state.pendingInterrupt
 
   const attacker = state.players.find(p => p.id === attackerId)
   const card = state.discardPile.find(c => c.id === cardId)
@@ -458,19 +520,28 @@ function resolveInterruptTimeout(
       state.phase = GamePhase.Resolve
       const pd = state.pendingDiscard as unknown as PendingDiscard // TS narrowing bypass
 
-      for (const targetId of pd.remainingTargetIds) {
-        const targetSocket = state.players.find(p => p.id === targetId)?.socketId
-        if (targetSocket) {
-          io.to(targetSocket).emit(SocketEvents.DISCARD_REQUIRED, {
-            reason: pd.reason,
-            requiredColor: pd.requiredColor
-          })
-        }
-      }
+      // Remove players who used Nullify
+      pd.remainingTargetIds = pd.remainingTargetIds.filter(id => !nullifiedPlayerIds.includes(id))
 
-      pd.timeoutHandle = setTimeout(() => {
-        resolveDiscardTimeout(io, roomId, state)
-      }, INTERRUPT_TIMEOUT_MS)
+      if (pd.remainingTargetIds.length === 0) {
+        // Everyone nullified! Resume play.
+        state.pendingDiscard = null
+        state.phase = GamePhase.Play
+      } else {
+        for (const targetId of pd.remainingTargetIds) {
+          const targetSocket = state.players.find(p => p.id === targetId)?.socketId
+          if (targetSocket) {
+            io.to(targetSocket).emit(SocketEvents.DISCARD_REQUIRED, {
+              reason: pd.reason,
+              requiredColor: pd.requiredColor
+            })
+          }
+        }
+
+        pd.timeoutHandle = setTimeout(() => {
+          resolveDiscardTimeout(io, roomId, state)
+        }, INTERRUPT_TIMEOUT_MS)
+      }
     } else {
       state.phase = GamePhase.Play
     }

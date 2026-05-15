@@ -42,6 +42,7 @@ export interface PendingInterrupt {
   }
   timeoutMs: number
   timeoutHandle?: ReturnType<typeof setTimeout>
+  nullifiedPlayerIds: string[]
 }
 
 export interface PendingDiscard {
@@ -96,5 +97,6 @@ export interface PlayerView {
   pendingInterrupt: Omit<PendingInterrupt, 'timeoutHandle'> | null
   pendingDiscard: Omit<PendingDiscard, 'timeoutHandle'> | null
   blockPurchaseFlag: boolean
+  purchaseBlockedThisTurn: boolean
   hasPlayedCardThisTurn: boolean
 }

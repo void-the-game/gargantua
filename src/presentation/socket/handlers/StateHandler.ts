@@ -59,6 +59,7 @@ export function createPlayerView(
         targetId: state.pendingInterrupt.targetId,
         cardId: state.pendingInterrupt.cardId,
         timeoutMs: state.pendingInterrupt.timeoutMs,
+        nullifiedPlayerIds: state.pendingInterrupt.nullifiedPlayerIds,
       }
       : null,
     pendingDiscard: state.pendingDiscard
@@ -70,6 +71,7 @@ export function createPlayerView(
       }
       : null,
     blockPurchaseFlag: state.blockPurchaseFlag,
+    purchaseBlockedThisTurn: state.purchaseBlockedThisTurn,
     hasPlayedCardThisTurn: state.hasPlayedCardThisTurn,
   }
 }
