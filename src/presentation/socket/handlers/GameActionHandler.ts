@@ -117,7 +117,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           // Check for "Total Loss" if playing draw cards during a Global Block
           if (
             state.blockPurchaseTurnsRemaining > 0 &&
-            [CardType.Recycle, CardType.BuyPlusOne, CardType.BuyPlusTwo].includes(card.type)
+            [CardType.Recycle, CardType.BuyPlus1, CardType.BuyPlus2].includes(card.type)
           ) {
             resultDescription = 'Perda total: Ações de compra estão bloqueadas na mesa.'
           } else {

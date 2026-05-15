@@ -69,7 +69,7 @@ export function registerMatchHandlers(io: Server, socket: Socket): void {
           turnNumber: 1,
           phase: GamePhase.Play,
           pendingInterrupt: null,
-          blockPurchaseFlag: false,
+          blockPurchaseTurnsRemaining: 0,
           purchaseBlockedThisTurn: false,
           hasPlayedCardThisTurn: false,
           pendingDiscard: null
