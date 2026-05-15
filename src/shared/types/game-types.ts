@@ -24,6 +24,7 @@ export interface Player {
   id: string
   socketId: string
   name: string
+  avatar?: string
   hand: Card[]
   isEliminated: boolean
   canReturn: boolean
@@ -69,7 +70,7 @@ export interface GameState {
 export interface Room {
   id: string
   code: string
-  players: Pick<Player, 'id' | 'socketId' | 'name'>[]
+  players: Pick<Player, 'id' | 'socketId' | 'name' | 'avatar'>[]
   status: RoomStatus
   gameState: GameState | null
   createdAt: Date

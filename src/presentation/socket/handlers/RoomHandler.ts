@@ -1,5 +1,6 @@
 import { Server, Socket } from 'socket.io'
 import { roomStore } from '@/infrastructure/stores/InMemoryRoomStore'
+import { ProfileModel } from '@/infrastructure/models/ProfileModel'
 import {
   SocketEvents,
   RoomCreatePayload,
@@ -16,16 +17,52 @@ import {
 import { RoomStatus } from '@/shared/types/game-types'
 
 const MAX_PLAYERS_PER_ROOM = 4
+const disconnectTimers = new Map<string, NodeJS.Timeout>()
+
+const safeAvatarUrl = (url?: string): string => {
+  if (!url || !url.startsWith('https://')) return ''
+  return url
+}
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
   socket.on(
     SocketEvents.ROOM_CREATE,
-    (payload: RoomCreatePayload, callback?: (response: unknown) => void) => {
+    async (
+      payload: RoomCreatePayload,
+      callback?: (response: unknown) => void
+    ) => {
       try {
-        const { playerName } = payload
+        const { playerName, userId } = payload
         const playerId = socket.id
 
-        const room = roomStore.createRoom(playerId, socket.id, playerName)
+        let profile = null
+        if (userId) {
+          try {
+            profile = await ProfileModel.findOne({ userId }).lean()
+          } catch (e) {
+            console.log(`[room] ROOM_CREATE invalid userId: ${userId}`)
+          }
+        }
+
+        if (!profile) {
+          profile = await ProfileModel.findOne(
+            { nickname: playerName },
+            { avatar: 1 }
+          ).lean()
+        }
+        const avatar = safeAvatarUrl(profile?.avatar)
+
+        const room = roomStore.createRoom(
+          playerId,
+          socket.id,
+          playerName,
+          avatar
+        )
+
+        socket.data.userId = userId
+        socket.data.playerName = playerName
+        socket.data.roomId = room.id
+        socket.data.isHost = true
 
         socket.join(room.id)
 
@@ -51,9 +88,12 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
   socket.on(
     SocketEvents.ROOM_JOIN,
-    (payload: RoomJoinPayload, callback?: (response: unknown) => void) => {
+    async (
+      payload: RoomJoinPayload,
+      callback?: (response: unknown) => void
+    ) => {
       try {
-        const { code, playerName } = payload
+        const { code, playerName, userId } = payload
         const playerId = socket.id
 
         const room = roomStore.getRoomByCode(code)
@@ -73,7 +113,30 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           throw roomFull()
         }
 
-        roomStore.addPlayer(room.id, playerId, socket.id, playerName)
+        let profile = null
+        if (userId) {
+          try {
+            profile = await ProfileModel.findOne({ userId }).lean()
+          } catch (e) {
+            console.log(`[room] ROOM_JOIN invalid userId: ${userId}`)
+          }
+        }
+
+        if (!profile) {
+          profile = await ProfileModel.findOne(
+            { nickname: playerName },
+            { avatar: 1 }
+          ).lean()
+        }
+
+        const avatar = safeAvatarUrl(profile?.avatar)
+
+        roomStore.addPlayer(room.id, playerId, socket.id, playerName, avatar)
+
+        socket.data.userId = userId
+        socket.data.playerName = playerName
+        socket.data.roomId = room.id
+        socket.data.isHost = false
 
         socket.join(room.id)
 
@@ -84,6 +147,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         const playerList = room.players.map((p) => ({
           id: p.id,
           name: p.name,
+          avatar: p.avatar ?? '',
         }))
 
         io.to(room.id).emit(SocketEvents.ROOM_PLAYER_JOINED, {
@@ -110,7 +174,16 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   })
 
   socket.on('disconnect', () => {
-    handlePlayerLeave(io, socket)
+    const playerId = socket.id
+    const timer = setTimeout(() => {
+      const isStillConnected = io.sockets.sockets.has(socket.id)
+      if (!isStillConnected) {
+        handlePlayerLeave(io, socket)
+      }
+      disconnectTimers.delete(playerId)
+    }, 60_000)
+
+    disconnectTimers.set(playerId, timer)
   })
 }
 
@@ -133,6 +206,7 @@ function handlePlayerLeave(io: Server, socket: Socket): void {
     const playerList = updatedRoom.players.map((p) => ({
       id: p.id,
       name: p.name,
+      avatar: p.avatar ?? '',
     }))
 
     io.to(room.id).emit(SocketEvents.ROOM_PLAYER_LEFT, {

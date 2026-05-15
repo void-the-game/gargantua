@@ -16,14 +16,19 @@ export class InMemoryRoomStore {
   private codeToRoomId: Map<string, string> = new Map()
   private playerToRoomId: Map<string, string> = new Map()
 
-  createRoom(playerId: string, socketId: string, playerName: string): Room {
+  createRoom(
+    playerId: string,
+    socketId: string,
+    playerName: string,
+    avatar?: string
+  ): Room {
     const id = crypto.randomUUID()
     const code = generateRoomCode()
 
     const room: Room = {
       id,
       code,
-      players: [{ id: playerId, socketId, name: playerName }],
+      players: [{ id: playerId, socketId, name: playerName, avatar }],
       status: RoomStatus.Waiting,
       gameState: null,
       createdAt: new Date(),
@@ -56,12 +61,13 @@ export class InMemoryRoomStore {
     roomId: string,
     playerId: string,
     socketId: string,
-    playerName: string
+    playerName: string,
+    avatar?: string
   ): Room | undefined {
     const room = this.rooms.get(roomId)
     if (!room) return undefined
 
-    room.players.push({ id: playerId, socketId, name: playerName })
+    room.players.push({ id: playerId, socketId, name: playerName, avatar })
     this.playerToRoomId.set(playerId, roomId)
 
     return room
@@ -84,7 +90,10 @@ export class InMemoryRoomStore {
     return room
   }
 
-  updatePlayerSocketId(playerId: string, newSocketId: string): Room | undefined {
+  updatePlayerSocketId(
+    playerId: string,
+    newSocketId: string
+  ): Room | undefined {
     const room = this.getRoomByPlayerId(playerId)
     if (!room) return undefined
 

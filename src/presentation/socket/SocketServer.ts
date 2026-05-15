@@ -14,12 +14,17 @@ export function createSocketServer(httpServer: HttpServer): SocketIOServer {
       methods: ['GET', 'POST'],
     },
     connectionStateRecovery: {
-      maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+      maxDisconnectionDuration: 60 * 1000, // 1 minute (matches RoomHandler grace period)
+      skipMiddlewares: true,
     },
   })
 
   io.on('connection', (socket) => {
-    console.log(`[socket] connected: ${socket.id}`)
+    if (socket.recovered) {
+      console.log(`[socket] recovered session: ${socket.id}`)
+    } else {
+      console.log(`[socket] connected: ${socket.id}`)
+    }
 
     // Register all handlers
     registerRoomHandlers(io, socket)
