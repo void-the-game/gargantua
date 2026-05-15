@@ -46,6 +46,7 @@ export const SocketEvents = {
 /** Client → Server: create a new room */
 export interface RoomCreatePayload {
   playerName: string
+  userId?: string
 }
 
 /** Server → Client: room was created */
@@ -58,19 +59,20 @@ export interface RoomCreatedPayload {
 export interface RoomJoinPayload {
   code: string
   playerName: string
+  userId?: string
 }
 
 /** Server → Room: a player joined */
 export interface RoomPlayerJoinedPayload {
   playerId: string
   playerName: string
-  players: { id: string; name: string }[]
+  players: { id: string; name: string; avatar?: string }[]
 }
 
 /** Server → Room: a player left */
 export interface RoomPlayerLeftPayload {
   playerId: string
-  players: { id: string; name: string }[]
+  players: { id: string; name: string; avatar?: string }[]
 }
 
 /** Client → Server: start the match */

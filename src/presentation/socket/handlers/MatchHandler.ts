@@ -46,6 +46,7 @@ export function registerMatchHandlers(io: Server, socket: Socket): void {
           id: p.id,
           socketId: p.socketId,
           name: p.name,
+          avatar: p.avatar,
           hand: [],
           isEliminated: false,
           canReturn: false,
