@@ -43,10 +43,11 @@ export const SocketEvents = {
 
 // ─── Payload Types ───────────────────────────────────────────────
 
-/** Client → Server: create a new room */
 export interface RoomCreatePayload {
   playerName: string
   userId?: string
+  roomName: string
+  isPrivate: boolean
 }
 
 /** Server → Client: room was created */
