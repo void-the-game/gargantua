@@ -32,7 +32,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       callback?: (response: unknown) => void
     ) => {
       try {
-        const { playerName, userId } = payload
+        const { playerName, userId, roomName, isPrivate } = payload
         const playerId = socket.id
 
         let profile = null
@@ -51,13 +51,18 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           ).lean()
         }
         const avatar = safeAvatarUrl(profile?.avatar)
+        
+        const finalRoomName = roomName || `${playerName}'s Room`
+        const finalIsPrivate = isPrivate ?? false
 
-        const room = roomStore.createRoom(
+        const room = roomStore.createRoom({
           playerId,
-          socket.id,
+          socketId: socket.id,
           playerName,
+          roomName: finalRoomName,
+          isPrivate: finalIsPrivate,
           avatar
-        )
+        })
 
         socket.data.userId = userId
         socket.data.playerName = playerName
@@ -131,7 +136,13 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
         const avatar = safeAvatarUrl(profile?.avatar)
 
-        roomStore.addPlayer(room.id, playerId, socket.id, playerName, avatar)
+        roomStore.addPlayer({
+          roomId: room.id, 
+          playerId, 
+          socketId: socket.id, 
+          playerName, 
+          avatar
+        })
 
         socket.data.userId = userId
         socket.data.playerName = playerName
