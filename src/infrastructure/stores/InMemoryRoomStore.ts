@@ -11,23 +11,44 @@ function generateRoomCode(length = 6): string {
   return code
 }
 
+export interface CreateRoomParams {
+  playerId: string
+  socketId: string
+  playerName: string
+  roomName: string
+  isPrivate: boolean
+  avatar?: string
+}
+
+export interface AddPlayerParams {
+  roomId: string
+  playerId: string
+  socketId: string
+  playerName: string
+  avatar?: string
+}
+
 export class InMemoryRoomStore {
   private rooms: Map<string, Room> = new Map()
   private codeToRoomId: Map<string, string> = new Map()
   private playerToRoomId: Map<string, string> = new Map()
 
-  createRoom(
-    playerId: string,
-    socketId: string,
-    playerName: string,
-    avatar?: string
-  ): Room {
+  createRoom({
+    playerId,
+    socketId,
+    playerName,
+    roomName,
+    isPrivate,
+    avatar,
+  }: CreateRoomParams): Room {
     const id = crypto.randomUUID()
     const code = generateRoomCode()
 
     const room: Room = {
       id,
       code,
+      name: roomName,
+      isPrivate,
       players: [{ id: playerId, socketId, name: playerName, avatar }],
       status: RoomStatus.Waiting,
       gameState: null,
@@ -57,13 +78,13 @@ export class InMemoryRoomStore {
     return this.rooms.get(roomId)
   }
 
-  addPlayer(
-    roomId: string,
-    playerId: string,
-    socketId: string,
-    playerName: string,
-    avatar?: string
-  ): Room | undefined {
+  addPlayer({
+    roomId,
+    playerId,
+    socketId,
+    playerName,
+    avatar,
+  }: AddPlayerParams): Room | undefined {
     const room = this.rooms.get(roomId)
     if (!room) return undefined
 
@@ -127,6 +148,10 @@ export class InMemoryRoomStore {
 
   getRoomCount(): number {
     return this.rooms.size
+  }
+
+  getAllRooms(): Room[] {
+    return Array.from(this.rooms.values())
   }
 
   clearRoom(roomId: string): void {
