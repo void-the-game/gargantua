@@ -1,9 +1,12 @@
-import { GameState, Player, TurnDirection } from '@/shared/types/game-types'
+import { GameState, Player, TurnDirection, GamePhase } from '@/shared/types/game-types'
 
 /**
  * Advance the turn to the next active (non-eliminated) player.
  */
 export function advanceTurn(state: GameState): void {
+  // Clear the 'active block' sentinel from the previous blocked turn.
+  state.purchaseBlockedThisTurn = false
+
   const step = state.direction === TurnDirection.Clockwise ? 1 : -1
   const playerCount = state.players.length
 
@@ -20,10 +23,12 @@ export function advanceTurn(state: GameState): void {
   state.turnNumber++
   state.hasPlayedCardThisTurn = false
 
-  // Compra automática no início do turno
-  if (state.blockPurchaseFlag) {
-    // Bloqueia a compra e limpa a flag para o próximo turno
-    state.blockPurchaseFlag = false
+  if (state.blockPurchaseTurnsRemaining > 0) {
+    state.blockPurchaseTurnsRemaining--
+    // Activate the "purchases blocked THIS turn" sentinel so card play logic
+    // can also check it without interfering with future turns.
+    state.purchaseBlockedThisTurn = true
+    // No auto-draw for the incoming player.
   } else {
     drawCards(state, state.players[nextIndex], 1)
   }
@@ -166,4 +171,21 @@ export function drawCards(
   const drawn = state.deck.splice(0, available)
   player.hand.push(...drawn)
   return available
+}
+
+/**
+ * Checks if the current player's actions are fully resolved and auto-advances the turn if so.
+ * This should be called before broadcastStateUpdate in any handler that resolves an action.
+ */
+export function tryAutoPass(state: GameState): boolean {
+  if (
+    state.phase === GamePhase.Play &&
+    state.hasPlayedCardThisTurn &&
+    !state.pendingInterrupt &&
+    !state.pendingDiscard
+  ) {
+    advanceTurn(state)
+    return true
+  }
+  return false
 }

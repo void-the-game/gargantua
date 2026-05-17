@@ -43,6 +43,7 @@ export interface PendingInterrupt {
   }
   timeoutMs: number
   timeoutHandle?: ReturnType<typeof setTimeout>
+  nullifiedPlayerIds: string[]
 }
 
 export interface PendingDiscard {
@@ -50,6 +51,7 @@ export interface PendingDiscard {
   sourcePlayerId: string
   requiredColor: string
   remainingTargetIds: string[]
+  timeoutHandle?: ReturnType<typeof setTimeout>
 }
 
 export interface GameState {
@@ -63,7 +65,10 @@ export interface GameState {
   phase: GamePhase
   pendingInterrupt: PendingInterrupt | null
   pendingDiscard: PendingDiscard | null
-  blockPurchaseFlag: boolean
+  /** Set by BlockPurchase card: marks that the purchase is blocked for N-1 turns. */
+  blockPurchaseTurnsRemaining: number
+  /** Set by advanceTurn when entering a blocked turn. Read by handleBuyPlus to block card effects. Cleared at the start of the following advanceTurn. */
+  purchaseBlockedThisTurn: boolean
   hasPlayedCardThisTurn: boolean
 }
 
@@ -91,7 +96,8 @@ export interface PlayerView {
   turnNumber: number
   phase: GamePhase
   pendingInterrupt: Omit<PendingInterrupt, 'timeoutHandle'> | null
-  pendingDiscard: PendingDiscard | null
-  blockPurchaseFlag: boolean
+  pendingDiscard: Omit<PendingDiscard, 'timeoutHandle'> | null
+  blockPurchaseTurnsRemaining: number
+  purchaseBlockedThisTurn: boolean
   hasPlayedCardThisTurn: boolean
 }

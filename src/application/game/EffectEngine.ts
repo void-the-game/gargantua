@@ -155,20 +155,19 @@ function handleVortex(card: Card, state: GameState): EffectResult {
 }
 
 function handleBuyPlus(state: GameState, amount: number): EffectResult {
-  const target = getNextPlayer(state)
+  const player = getCurrentPlayer(state)
 
-  if (state.blockPurchaseFlag) {
-    state.blockPurchaseFlag = false
+  if (state.purchaseBlockedThisTurn) {
     return {
-      description: `Compra de +${amount} foi bloqueada pelo efeito anterior!`,
+      description: `Compra de +${amount} foi bloqueada!`,
       requiresInterrupt: false,
     }
   }
 
-  const drawn = drawCards(state, target, amount)
+  const drawn = drawCards(state, player, amount)
 
   return {
-    description: `${target.name} comprou ${drawn} carta(s) extra(s)!`,
+    description: `${player.name} comprou ${drawn} carta(s) extra(s)!`,
     requiresInterrupt: false,
   }
 }
@@ -253,10 +252,11 @@ function handleRecycle(
 }
 
 function handleBlockPurchase(state: GameState): EffectResult {
-  state.blockPurchaseFlag = true
+  const activePlayers = state.players.filter(p => !p.isEliminated).length
+  state.blockPurchaseTurnsRemaining = Math.max(0, activePlayers - 1)
 
   return {
-    description: 'Blocked purchases for the next turn',
+    description: `Blocked purchases for the next ${state.blockPurchaseTurnsRemaining} turn(s)`,
     requiresInterrupt: false,
   }
 }
