@@ -1,46 +1,57 @@
 import { roomStore } from '@/infrastructure/stores/InMemoryRoomStore'
+import { RoomStatus } from '@/shared/types/game-types'
 
-export interface ListRoomsParams {
-  page: number
-  limit: number
-  search: string
+export type ListRoomsParams = {
+  page?: number
+  limit?: number
+  search?: string
 }
 
+const MAX_LIMIT = 50
+
 export class ListRoomsUseCase {
-  async execute(params: ListRoomsParams) {
-    const { page, limit, search } = params
+  async execute({ page, limit, search }: ListRoomsParams) {
+    const safePage = page && page > 0 ? page : 1
+    const safeLimit = limit && limit > 0 ? Math.min(MAX_LIMIT, limit) : 10
+    const searchStr = search || ''
 
     let rooms = roomStore.getAllRooms()
 
-    // Filter by name if search query is provided
-    if (search) {
-      rooms = rooms.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()))
+    if (searchStr) {
+      rooms = rooms.filter((r) => r.name.toLowerCase().includes(searchStr.toLowerCase()))
     }
 
-    // Sort by creation date (newest first)
-    rooms.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    // Sort: Waiting rooms first, then by creation date (newest first)
+    rooms.sort((a, b) => {
+      if (a.status === RoomStatus.Waiting && b.status !== RoomStatus.Waiting) return -1
+      if (a.status !== RoomStatus.Waiting && b.status === RoomStatus.Waiting) return 1
+      return b.createdAt.getTime() - a.createdAt.getTime()
+    })
 
     const totalItems = rooms.length
-    const totalPages = Math.ceil(totalItems / limit)
-    const startIndex = (page - 1) * limit
-    const paginatedRooms = rooms.slice(startIndex, startIndex + limit)
+    const totalPages = Math.ceil(totalItems / safeLimit)
+    const startIndex = (safePage - 1) * safeLimit
+    const paginatedRooms = rooms.slice(startIndex, startIndex + safeLimit)
 
-    const formattedRooms = paginatedRooms.map((room) => ({
-      id: room.id,
-      name: room.name,
-      isPrivate: room.isPrivate,
-      code: room.isPrivate ? undefined : room.code,
-      status: room.status,
-      playersCount: room.players.length,
-      hostName: room.players[0]?.name || 'Unknown',
-      createdAt: room.createdAt,
-    }))
+    const formattedRooms = paginatedRooms.map((room) => {
+      const host = room.players.find((p) => p.id === room.hostId)
+      return {
+        id: room.id,
+        name: room.name,
+        isPrivate: room.isPrivate,
+        code: room.isPrivate ? undefined : room.code,
+        status: room.status,
+        playersCount: room.players.length,
+        hostName: host?.name || room.players[0]?.name || 'Unknown',
+        createdAt: room.createdAt,
+      }
+    })
 
     return {
       data: formattedRooms,
       pagination: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         totalItems,
         totalPages,
       },

@@ -75,4 +75,14 @@ describe('GetRoomUseCase', () => {
     expect(result?.playersCount).toBe(0)
     expect(result?.hostName).toBe('Unknown')
   })
+
+  it('should return null if room code is null, undefined or not a string', async () => {
+    const result1 = await getRoomUseCase.execute(undefined as any)
+    const result2 = await getRoomUseCase.execute(null as any)
+    const result3 = await getRoomUseCase.execute(123456 as any)
+
+    expect(result1).toBeNull()
+    expect(result2).toBeNull()
+    expect(result3).toBeNull()
+  })
 })

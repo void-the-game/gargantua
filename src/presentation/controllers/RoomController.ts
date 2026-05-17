@@ -13,8 +13,8 @@ export class RoomController {
 
   async listRooms(req: Request, res: Response) {
     try {
-      const page = parseInt(req.query.page as string) || 1
-      const limit = 10
+      const page = parseInt(req.query.page as string, 10) || 1
+      const limit = parseInt(req.query.limit as string, 10) || 10
       const search = (req.query.search as string) || ''
 
       const result = await this.listRoomsUseCase.execute({ page, limit, search })

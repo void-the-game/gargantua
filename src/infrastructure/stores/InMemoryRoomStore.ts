@@ -18,6 +18,7 @@ export interface CreateRoomParams {
   roomName: string
   isPrivate: boolean
   avatar?: string
+  hostId?: string
 }
 
 export interface AddPlayerParams {
@@ -40,6 +41,7 @@ export class InMemoryRoomStore {
     roomName,
     isPrivate,
     avatar,
+    hostId,
   }: CreateRoomParams): Room {
     const id = crypto.randomUUID()
     const code = generateRoomCode()
@@ -49,6 +51,7 @@ export class InMemoryRoomStore {
       code,
       name: roomName,
       isPrivate,
+      hostId: hostId || playerId,
       players: [{ id: playerId, socketId, name: playerName, avatar }],
       status: RoomStatus.Waiting,
       gameState: null,
@@ -106,6 +109,12 @@ export class InMemoryRoomStore {
       this.rooms.delete(roomId)
       this.codeToRoomId.delete(room.code)
       return undefined
+    }
+
+    // Host succession: If the host left, pick a new one randomly
+    if (room.hostId === playerId) {
+      const randomIndex = Math.floor(Math.random() * room.players.length)
+      room.hostId = room.players[randomIndex].id
     }
 
     return room

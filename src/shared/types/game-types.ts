@@ -77,6 +77,7 @@ export interface Room {
   code: string
   name: string
   isPrivate: boolean
+  hostId: string
   players: Pick<Player, 'id' | 'socketId' | 'name' | 'avatar'>[]
   status: RoomStatus
   gameState: GameState | null

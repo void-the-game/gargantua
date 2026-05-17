@@ -12,6 +12,7 @@ import {
   matchAlreadyStarted,
   roomNotFound,
   isGameError,
+  notRoomHost,
 } from '@/shared/errors/GameError'
 import { buildDeck, shuffleDeck, dealCards, pickStartingPlayer } from '@/application/game/DeckBuilder'
 import { drawCards } from '@/application/game/TurnManager'
@@ -29,6 +30,11 @@ export function registerMatchHandlers(io: Server, socket: Socket): void {
 
         if (!room) {
           throw roomNotFound()
+        }
+
+        const callerHostId = socket.data.userId || socket.id
+        if (room.hostId !== callerHostId) {
+          throw notRoomHost()
         }
 
         if (room.status !== RoomStatus.Waiting) {

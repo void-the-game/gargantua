@@ -25,6 +25,7 @@ describe('ListRoomsUseCase', () => {
       status: RoomStatus.Waiting,
       createdAt: new Date('2026-05-16T10:00:00Z'),
       players: [{ id: 'p1', name: 'Player 1', socketId: 's1' }],
+      hostId: 'p1',
       gameState: null,
     },
     {
@@ -38,6 +39,7 @@ describe('ListRoomsUseCase', () => {
         { id: 'p2', name: 'Player 2', socketId: 's2' },
         { id: 'p3', name: 'Player 3', socketId: 's3' },
       ],
+      hostId: 'p2',
       gameState: null,
     },
   ]
@@ -50,14 +52,14 @@ describe('ListRoomsUseCase', () => {
     expect(result.pagination.totalItems).toBe(2)
     expect(result.data).toHaveLength(2)
 
-    expect(result.data[0].id).toBe('2')
-    expect(result.data[1].id).toBe('1')
+    expect(result.data[0].id).toBe('1')
+    expect(result.data[1].id).toBe('2')
 
-    expect(result.data[0].code).toBeUndefined()
-    expect(result.data[1].code).toBe('AAAAAA')
+    expect(result.data[0].code).toBe('AAAAAA')
+    expect(result.data[1].code).toBeUndefined()
 
-    expect(result.data[0].playersCount).toBe(2)
-    expect(result.data[1].playersCount).toBe(1)
+    expect(result.data[0].playersCount).toBe(1)
+    expect(result.data[1].playersCount).toBe(2)
   })
 
   it('should filter rooms by search string', async () => {
@@ -79,6 +81,26 @@ describe('ListRoomsUseCase', () => {
     expect(result.pagination.totalPages).toBe(2)
     expect(result.pagination.page).toBe(2)
     expect(result.data).toHaveLength(1)
+    expect(result.data[0].id).toBe('2')
+  })
+
+  it('should clamp invalid, zero or negative page and limit values safely', async () => {
+    ; (roomStore.getAllRooms as jest.Mock).mockReturnValue(mockRooms)
+
+    const result = await listRoomsUseCase.execute({ page: 0, limit: -5, search: '' })
+
+    expect(result.pagination.page).toBe(1)
+    expect(result.pagination.limit).toBe(10)
+    expect(result.data).toHaveLength(2)
     expect(result.data[0].id).toBe('1')
+    expect(result.data[1].id).toBe('2')
+  })
+
+  it('should clamp limit to MAX_LIMIT (50)', async () => {
+    ; (roomStore.getAllRooms as jest.Mock).mockReturnValue(mockRooms)
+
+    const result = await listRoomsUseCase.execute({ page: 1, limit: 100, search: '' })
+
+    expect(result.pagination.limit).toBe(50)
   })
 })
