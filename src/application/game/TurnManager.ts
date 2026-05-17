@@ -1,4 +1,4 @@
-import { GameState, Player, TurnDirection } from '@/shared/types/game-types'
+import { GameState, Player, TurnDirection, GamePhase } from '@/shared/types/game-types'
 
 /**
  * Advance the turn to the next active (non-eliminated) player.
@@ -171,4 +171,21 @@ export function drawCards(
   const drawn = state.deck.splice(0, available)
   player.hand.push(...drawn)
   return available
+}
+
+/**
+ * Checks if the current player's actions are fully resolved and auto-advances the turn if so.
+ * This should be called before broadcastStateUpdate in any handler that resolves an action.
+ */
+export function tryAutoPass(state: GameState): boolean {
+  if (
+    state.phase === GamePhase.Play &&
+    state.hasPlayedCardThisTurn &&
+    !state.pendingInterrupt &&
+    !state.pendingDiscard
+  ) {
+    advanceTurn(state)
+    return true
+  }
+  return false
 }

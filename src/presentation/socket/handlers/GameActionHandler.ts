@@ -5,7 +5,6 @@ import {
   CardPlayPayload,
   TurnPassPayload,
   DiscardSubmitPayload,
-  InterruptPlayPayload,
 } from '@/shared/types/socket-events'
 import { GamePhase, GameState, PendingDiscard } from '@/shared/types/game-types'
 import {
@@ -27,11 +26,13 @@ import {
   checkMatchEnd,
   tryPlayerReturn,
   drawCards,
+  tryAutoPass,
 } from '@/application/game/TurnManager'
 import { broadcastStateUpdate, emitInterruptAvailable } from './StateHandler'
 import { CardType } from '@/shared/types/card-types'
 
 const INTERRUPT_TIMEOUT_MS = 10_000
+const DISCARD_TIMEOUT_MS = 15_000
 
 export function registerGameActionHandlers(io: Server, socket: Socket): void {
   // ─── card:play ───────────────────────────────────────────────
@@ -159,7 +160,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
             // Auto-resolve after timeout: apply penalty to players who didn't respond
             pd.timeoutHandle = setTimeout(() => {
               resolveDiscardTimeout(io, roomId, state)
-            }, INTERRUPT_TIMEOUT_MS)
+            }, DISCARD_TIMEOUT_MS)
           } else {
             // Check for eliminations
             const eliminatedIds = checkElimination(state)
@@ -187,6 +188,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
         }
 
         // Broadcast updated state
+        tryAutoPass(state)
         broadcastStateUpdate(io, roomId, state)
       } catch (error) {
         emitError(socket, error)
@@ -265,67 +267,6 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
     }
   )
 
-  // ─── interrupt:play ──────────────────────────────────────────
-  socket.on(
-    SocketEvents.INTERRUPT_PLAY,
-    (payload: InterruptPlayPayload) => {
-      try {
-        const { roomId, cardId } = payload
-        const room = roomStore.getRoomById(roomId)
-
-        if (!room || !room.gameState) throw noActiveMatch()
-        const state = room.gameState
-
-        if (!state.pendingInterrupt) throw new Error('Nenhuma interrupção pendente.')
-
-        const playerIndex = state.players.findIndex(p => p.socketId === socket.id || p.id === socket.id)
-        if (playerIndex === -1) throw new Error('Jogador não encontrado.')
-        const player = state.players[playerIndex]
-
-        // Check if player has the card
-        const cardIndex = player.hand.findIndex(c => c.id === cardId)
-        if (cardIndex === -1) throw cardNotInHand()
-        const card = player.hand[cardIndex]
-
-        // Only allow reaction cards
-        if (![CardType.BlockSteal, CardType.Reflect, CardType.Nullify].includes(card.type)) {
-          throw new Error('Apenas cartas de reação podem ser jogadas agora.')
-        }
-
-        // Remove card from hand and add to discard pile
-        player.hand.splice(cardIndex, 1)
-        state.discardPile.push(card)
-
-        const pi = state.pendingInterrupt
-
-        // Check if attack is multi-target (AoE)
-        const attackCard = state.discardPile.find(c => c.id === pi.cardId)
-        const isMultiTarget = attackCard && (attackCard.type === CardType.Vortex || attackCard.type === CardType.BlackHole)
-
-        // Broadcast the reaction
-        io.to(roomId).emit(SocketEvents.CARD_PLAYED, {
-          playerId: player.id,
-          playerName: player.name,
-          card: { type: card.type, color: card.color },
-          effectDescription: `Reagiu com ${card.type}`,
-        })
-
-        if (isMultiTarget) {
-          // Multi-target: just add to nullified list, don't clear timeout
-          pi.nullifiedPlayerIds.push(player.id)
-        } else {
-          // Single-target: cancel attack completely
-          if (pi.timeoutHandle) clearTimeout(pi.timeoutHandle)
-          state.pendingInterrupt = null
-          state.phase = GamePhase.Play
-        }
-
-        broadcastStateUpdate(io, roomId, state)
-      } catch (error) {
-        emitError(socket, error)
-      }
-    }
-  )
 
   // ─── discard:submit ──────────────────────────────────────────
   socket.on(
@@ -426,6 +367,7 @@ export function registerGameActionHandlers(io: Server, socket: Socket): void {
           }
         }
 
+        tryAutoPass(state)
         broadcastStateUpdate(io, roomId, state)
       } catch (error) {
         emitError(socket, error)
@@ -500,6 +442,7 @@ function resolveDiscardTimeout(
     })
   }
 
+  tryAutoPass(state)
   broadcastStateUpdate(io, roomId, state)
 }
 
@@ -554,7 +497,7 @@ function resolveInterruptTimeout(
 
         pd.timeoutHandle = setTimeout(() => {
           resolveDiscardTimeout(io, roomId, state)
-        }, INTERRUPT_TIMEOUT_MS)
+        }, DISCARD_TIMEOUT_MS)
       }
     } else {
       state.phase = GamePhase.Play
@@ -587,6 +530,7 @@ function resolveInterruptTimeout(
     })
   }
 
+  tryAutoPass(state)
   broadcastStateUpdate(io, roomId, state)
 }
 
