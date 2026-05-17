@@ -61,10 +61,19 @@ export function createPlayerView(
         targetId: state.pendingInterrupt.targetId,
         cardId: state.pendingInterrupt.cardId,
         timeoutMs: state.pendingInterrupt.timeoutMs,
+        nullifiedPlayerIds: state.pendingInterrupt.nullifiedPlayerIds,
       }
       : null,
-    pendingDiscard: state.pendingDiscard,
-    blockPurchaseFlag: state.blockPurchaseFlag,
+    pendingDiscard: state.pendingDiscard
+      ? {
+        reason: state.pendingDiscard.reason,
+        sourcePlayerId: state.pendingDiscard.sourcePlayerId,
+        requiredColor: state.pendingDiscard.requiredColor,
+        remainingTargetIds: state.pendingDiscard.remainingTargetIds,
+      }
+      : null,
+    blockPurchaseTurnsRemaining: state.blockPurchaseTurnsRemaining,
+    purchaseBlockedThisTurn: state.purchaseBlockedThisTurn,
     hasPlayedCardThisTurn: state.hasPlayedCardThisTurn,
   }
 }

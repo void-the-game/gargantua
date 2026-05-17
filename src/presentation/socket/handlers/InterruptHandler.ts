@@ -14,7 +14,7 @@ import {
   isGameError,
 } from '@/shared/errors/GameError'
 import { executeSteal, executeReflect } from '@/application/game/EffectEngine'
-import { checkElimination, checkMatchEnd } from '@/application/game/TurnManager'
+import { checkElimination, checkMatchEnd, tryAutoPass } from '@/application/game/TurnManager'
 import { broadcastStateUpdate } from './StateHandler'
 
 export function registerInterruptHandlers(io: Server, socket: Socket): void {
@@ -147,6 +147,7 @@ export function registerInterruptHandlers(io: Server, socket: Socket): void {
           })
         }
 
+        tryAutoPass(state)
         broadcastStateUpdate(io, roomId, state)
       } catch (error) {
         if (isGameError(error)) {
