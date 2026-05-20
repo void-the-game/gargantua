@@ -596,7 +596,7 @@
 
     btnConnect.onclick = () => {
       if (socket) socket.disconnect();
-      socket = io('http://localhost:3000');
+      socket = io('https://gargantua.azurewebsites.net');
 
       socket.on('connect', () => {
         lblStatus.textContent = 'Connected: ' + socket.id;
