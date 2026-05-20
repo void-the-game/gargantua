@@ -98,3 +98,9 @@ export const cannotNullifyExtraPower = () =>
   createGameError('Cannot nullify Extra Power cards', {
     code: 'CANNOT_NULLIFY_EXTRA_POWER',
   })
+
+export const notRoomHost = () =>
+  createGameError('Only the host can start the match', {
+    code: 'NOT_ROOM_HOST',
+    statusCode: 403,
+  })

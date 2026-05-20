@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { JwtTokenService } from '@/infrastructure/services/JwtTokenService'
-import dotenv from 'dotenv'
-
-dotenv.config()
+import { jwtSecret } from '@/config/vars'
 
 // Estender o tipo Request para incluir user
 declare global {
@@ -33,7 +31,6 @@ export const authMiddleware = async (
 
     const token = authHeader.substring(7)
 
-    const jwtSecret = process.env.JWT_SECRET
     if (!jwtSecret) throw new Error('JWT secret is required')
 
     const jwtService = new JwtTokenService(jwtSecret)

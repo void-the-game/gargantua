@@ -10,7 +10,13 @@ describe('InMemoryRoomStore', () => {
 
   describe('createRoom', () => {
     it('should create a room with the creator as first player', () => {
-      const room = store.createRoom('player-1', 'socket-1', 'Alice')
+      const room = store.createRoom({
+        playerId: 'player-1',
+        socketId: 'socket-1',
+        playerName: 'Alice',
+        roomName: "Alice's Room",
+        isPrivate: false
+      })
 
       expect(room.id).toBeDefined()
       expect(room.code).toHaveLength(6)
@@ -24,9 +30,22 @@ describe('InMemoryRoomStore', () => {
       expect(room.gameState).toBeNull()
     })
 
+    it('should store hostId when provided during room creation', () => {
+      const room = store.createRoom({
+        playerId: 'player-1',
+        socketId: 'socket-1',
+        playerName: 'Alice',
+        roomName: "Alice's Room",
+        isPrivate: false,
+        hostId: 'user-123'
+      })
+
+      expect(room.hostId).toBe('user-123')
+    })
+
     it('should generate unique room codes', () => {
-      const room1 = store.createRoom('p1', 's1', 'A')
-      const room2 = store.createRoom('p2', 's2', 'B')
+      const room1 = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'A', roomName: 'Room A', isPrivate: false })
+      const room2 = store.createRoom({ playerId: 'p2', socketId: 's2', playerName: 'B', roomName: 'Room B', isPrivate: false })
 
       expect(room1.code).not.toBe(room2.code)
     })
@@ -34,7 +53,7 @@ describe('InMemoryRoomStore', () => {
 
   describe('getRoomById', () => {
     it('should return room by ID', () => {
-      const created = store.createRoom('p1', 's1', 'Alice')
+      const created = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       const found = store.getRoomById(created.id)
 
       expect(found).toBeDefined()
@@ -48,7 +67,7 @@ describe('InMemoryRoomStore', () => {
 
   describe('getRoomByCode', () => {
     it('should return room by code', () => {
-      const created = store.createRoom('p1', 's1', 'Alice')
+      const created = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       const found = store.getRoomByCode(created.code)
 
       expect(found).toBeDefined()
@@ -62,7 +81,7 @@ describe('InMemoryRoomStore', () => {
 
   describe('getRoomByPlayerId', () => {
     it('should return room by player ID', () => {
-      const created = store.createRoom('p1', 's1', 'Alice')
+      const created = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       const found = store.getRoomByPlayerId('p1')
 
       expect(found).toBeDefined()
@@ -76,8 +95,8 @@ describe('InMemoryRoomStore', () => {
 
   describe('addPlayer', () => {
     it('should add a player to the room', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
-      const updated = store.addPlayer(room.id, 'p2', 's2', 'Bob')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
+      const updated = store.addPlayer({ roomId: room.id, playerId: 'p2', socketId: 's2', playerName: 'Bob' })
 
       expect(updated).toBeDefined()
       expect(updated!.players).toHaveLength(2)
@@ -85,14 +104,14 @@ describe('InMemoryRoomStore', () => {
     })
 
     it('should return undefined for non-existent room', () => {
-      expect(store.addPlayer('fake', 'p1', 's1', 'A')).toBeUndefined()
+      expect(store.addPlayer({ roomId: 'fake', playerId: 'p1', socketId: 's1', playerName: 'A' })).toBeUndefined()
     })
   })
 
   describe('removePlayer', () => {
     it('should remove a player from the room', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
-      store.addPlayer(room.id, 'p2', 's2', 'Bob')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
+      store.addPlayer({ roomId: room.id, playerId: 'p2', socketId: 's2', playerName: 'Bob' })
 
       const updated = store.removePlayer(room.id, 'p1')
 
@@ -101,8 +120,23 @@ describe('InMemoryRoomStore', () => {
       expect(updated!.players[0].id).toBe('p2')
     })
 
+    it('should reassign hostId randomly when the current host leaves', () => {
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
+      store.addPlayer({ roomId: room.id, playerId: 'p2', socketId: 's2', playerName: 'Bob' })
+      store.addPlayer({ roomId: room.id, playerId: 'p3', socketId: 's3', playerName: 'Charlie' })
+
+      // p1 is the host by default
+      expect(room.hostId).toBe('p1')
+
+      const updated = store.removePlayer(room.id, 'p1')
+
+      expect(updated).toBeDefined()
+      expect(updated!.hostId).not.toBe('p1')
+      expect(['p2', 'p3']).toContain(updated!.hostId)
+    })
+
     it('should destroy room when last player leaves', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       const result = store.removePlayer(room.id, 'p1')
 
       expect(result).toBeUndefined()
@@ -111,8 +145,8 @@ describe('InMemoryRoomStore', () => {
     })
 
     it('should clean up player-to-room mapping', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
-      store.addPlayer(room.id, 'p2', 's2', 'Bob')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
+      store.addPlayer({ roomId: room.id, playerId: 'p2', socketId: 's2', playerName: 'Bob' })
       store.removePlayer(room.id, 'p1')
 
       expect(store.getRoomByPlayerId('p1')).toBeUndefined()
@@ -122,7 +156,7 @@ describe('InMemoryRoomStore', () => {
 
   describe('updatePlayerSocketId', () => {
     it('should update socket ID for reconnection', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       store.updatePlayerSocketId('p1', 'new-socket')
 
       const updated = store.getRoomById(room.id)
@@ -136,7 +170,7 @@ describe('InMemoryRoomStore', () => {
 
   describe('updateRoomStatus', () => {
     it('should update room status', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       store.updateRoomStatus(room.id, RoomStatus.InProgress)
 
       const updated = store.getRoomById(room.id)
@@ -146,20 +180,20 @@ describe('InMemoryRoomStore', () => {
 
   describe('isPlayerInRoom', () => {
     it('should return true for player in room', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       expect(store.isPlayerInRoom('p1', room.id)).toBe(true)
     })
 
     it('should return false for player not in room', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
       expect(store.isPlayerInRoom('p2', room.id)).toBe(false)
     })
   })
 
   describe('clearRoom', () => {
     it('should remove room and all player mappings', () => {
-      const room = store.createRoom('p1', 's1', 'Alice')
-      store.addPlayer(room.id, 'p2', 's2', 'Bob')
+      const room = store.createRoom({ playerId: 'p1', socketId: 's1', playerName: 'Alice', roomName: 'Room', isPrivate: false })
+      store.addPlayer({ roomId: room.id, playerId: 'p2', socketId: 's2', playerName: 'Bob' })
 
       store.clearRoom(room.id)
 

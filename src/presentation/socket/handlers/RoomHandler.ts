@@ -32,15 +32,16 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       callback?: (response: unknown) => void
     ) => {
       try {
-        const { playerName, userId } = payload
-        const playerId = socket.id
+        const { playerName, roomName, isPrivate } = payload
+        const userId = socket.data.userId
+        const playerId = userId || socket.id
 
         let profile = null
         if (userId) {
           try {
             profile = await ProfileModel.findOne({ userId }).lean()
           } catch (e) {
-            console.log(`[room] ROOM_CREATE invalid userId: ${userId}`)
+            console.log(`[room] ROOM_CREATE profile error for userId: ${userId}`)
           }
         }
 
@@ -52,14 +53,20 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         }
         const avatar = safeAvatarUrl(profile?.avatar)
 
-        const room = roomStore.createRoom(
-          playerId,
-          socket.id,
-          playerName,
-          avatar
-        )
+        const rawRoomName = typeof roomName === 'string' ? roomName.trim() : ''
+        const finalRoomName = rawRoomName.substring(0, 30) || `${playerName}'s Room`
+        const isRoomPrivate = isPrivate ?? false
 
-        socket.data.userId = userId
+        const room = roomStore.createRoom({
+          playerId,
+          socketId: socket.id,
+          playerName,
+          roomName: finalRoomName,
+          isPrivate: isRoomPrivate,
+          avatar,
+          hostId: playerId
+        })
+
         socket.data.playerName = playerName
         socket.data.roomId = room.id
         socket.data.isHost = true
@@ -93,8 +100,9 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       callback?: (response: unknown) => void
     ) => {
       try {
-        const { code, playerName, userId } = payload
-        const playerId = socket.id
+        const { code, playerName } = payload
+        const userId = socket.data.userId
+        const playerId = userId || socket.id
 
         const room = roomStore.getRoomByCode(code)
         if (!room) {
@@ -118,7 +126,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           try {
             profile = await ProfileModel.findOne({ userId }).lean()
           } catch (e) {
-            console.log(`[room] ROOM_JOIN invalid userId: ${userId}`)
+            console.log(`[room] ROOM_JOIN profile error for userId: ${userId}`)
           }
         }
 
@@ -131,9 +139,14 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
         const avatar = safeAvatarUrl(profile?.avatar)
 
-        roomStore.addPlayer(room.id, playerId, socket.id, playerName, avatar)
+        roomStore.addPlayer({
+          roomId: room.id,
+          playerId,
+          socketId: socket.id,
+          playerName,
+          avatar
+        })
 
-        socket.data.userId = userId
         socket.data.playerName = playerName
         socket.data.roomId = room.id
         socket.data.isHost = false
@@ -174,10 +187,13 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   })
 
   socket.on('disconnect', () => {
-    const playerId = socket.id
+    const playerId = socket.data.userId || socket.id
     const timer = setTimeout(() => {
-      const isStillConnected = io.sockets.sockets.has(socket.id)
-      if (!isStillConnected) {
+      // Check if player reconnected with a different socket (if userId was stable)
+      const currentRoom = roomStore.getRoomByPlayerId(playerId)
+      const isReconnected = currentRoom?.players.some(p => p.id === playerId && io.sockets.sockets.has(p.socketId))
+
+      if (!isReconnected) {
         handlePlayerLeave(io, socket)
       }
       disconnectTimers.delete(playerId)
@@ -188,7 +204,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 }
 
 function handlePlayerLeave(io: Server, socket: Socket): void {
-  const playerId = socket.id
+  const playerId = socket.data.userId || socket.id
   const room = roomStore.getRoomByPlayerId(playerId)
 
   if (!room) return

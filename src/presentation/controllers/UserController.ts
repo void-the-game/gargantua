@@ -7,15 +7,13 @@ import { BcryptPasswordHasher } from '@/infrastructure/services/BcryptPasswordHa
 import { JwtTokenService } from '@/infrastructure/services/JwtTokenService'
 import { NodeMailerEmailService } from '@/infrastructure/services/NodemailerEmailService'
 import { Request, Response } from 'express'
-import process from 'process'
 import validator from 'validator'
-import dotenv from 'dotenv'
+import { jwtSecret } from '@/config/vars'
 
 import { UserLoginUseCase } from '@/application/useCases/UserLoginUseCase'
 import { UpdateUserUseCase } from '@/application/useCases/UpdateUserUseCase'
 import { User } from '@/domain/entities/User'
 import { DeleteUserUseCase } from '@/application/useCases/DeleteUserUseCase'
-dotenv.config()
 
 export class UserController {
   private getUserByUsernameUseCase: GetUserByUsernameUseCase
@@ -26,7 +24,6 @@ export class UserController {
   private deleteUserUseCase: DeleteUserUseCase
 
   constructor() {
-    const jwtSecret = process.env.JWT_SECRET
     if (!jwtSecret) throw new Error('JWT secret is required')
 
     const userRepository = new UserRepositoryMongoose()
